@@ -13,6 +13,10 @@ The rule that decides when a watch item counts as updated.
 `latest` follows the release feed's most recent entry; `tag` follows one named release whose files are replaced in place.
 _Avoid_: checker, watcher type
 
+**Tag filter**:
+The optional pattern set that narrows `latest` to releases whose tag matches any pattern. Patterns use glob syntax and ignore case; a prerelease is never selected. The newest matching release is the one followed.
+_Avoid_: tag mask, tag include, tag whitelist
+
 **Marker**:
 The value recorded after a successful delivery and compared against the upstream value on the next run to decide whether anything changed.
 _Avoid_: version, fingerprint, last release
