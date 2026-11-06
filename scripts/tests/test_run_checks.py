@@ -44,12 +44,14 @@ def _clear_env(monkeypatch):
 
 def _run(monkeypatch, tmp_path, *, markers=None, notify_ok=True,
          items=None, project=None, force=False, admin=None,
-         detected=None, summary=None):
+         detected=None, summary=None, telegram_env=True):
     items = items or _items()
     markers = markers or {}
 
     _clear_env(monkeypatch)
     monkeypatch.setenv("TG_CHAT_ID", "111")
+    if not telegram_env:
+        monkeypatch.delenv("TG_CHAT_ID", raising=False)
     monkeypatch.setenv("TG_BOT_TOKEN", "TOK")
     monkeypatch.setenv("TG_API_ID", "1")
     monkeypatch.setenv("TG_API_HASH", "H")
@@ -219,7 +221,7 @@ def test_default_state_file_resolves_to_repository_root(monkeypatch):
     assert state == repo_root / "data" / "state.json"
 
 
-def _disabled_items():
+def _mixed_items():
     return [
         WatchItem(id="a", repo="o/a", strategy="latest",
                   notify=NotifyCopy(title="a"), enabled=False),
@@ -232,7 +234,7 @@ def test_disabled_item_is_not_detected_or_delivered(monkeypatch, tmp_path):
     detected: list[str] = []
 
     code, delivered, _alerts, state = _run(
-        monkeypatch, tmp_path, items=_disabled_items(), detected=detected,
+        monkeypatch, tmp_path, items=_mixed_items(), detected=detected,
     )
 
     assert code == 0
@@ -243,7 +245,7 @@ def test_disabled_item_is_not_detected_or_delivered(monkeypatch, tmp_path):
 
 def test_selecting_a_disabled_item_fails(monkeypatch, tmp_path):
     code, delivered, _alerts, state = _run(
-        monkeypatch, tmp_path, items=_disabled_items(), project="a",
+        monkeypatch, tmp_path, items=_mixed_items(), project="a",
     )
 
     assert code == 1
@@ -253,17 +255,39 @@ def test_selecting_a_disabled_item_fails(monkeypatch, tmp_path):
 
 def test_force_does_not_reenable_a_disabled_item(monkeypatch, tmp_path):
     _code, delivered, _alerts, _state = _run(
-        monkeypatch, tmp_path, items=_disabled_items(), force=True,
+        monkeypatch, tmp_path, items=_mixed_items(), force=True,
     )
 
     assert delivered == ["b"]
 
 
-def test_disabled_item_appears_in_summary(monkeypatch, tmp_path):
+def test_summary_follows_watch_list_order(monkeypatch, tmp_path):
     summary = tmp_path / "summary.md"
+    items = [
+        WatchItem(id="a", repo="o/a", strategy="latest",
+                  notify=NotifyCopy(title="a")),
+        WatchItem(id="b", repo="o/b", strategy="latest",
+                  notify=NotifyCopy(title="b"), enabled=False),
+        WatchItem(id="c", repo="o/c", strategy="latest",
+                  notify=NotifyCopy(title="c")),
+    ]
 
-    _run(monkeypatch, tmp_path, items=_disabled_items(), summary=summary)
+    _run(monkeypatch, tmp_path, items=items, summary=summary)
 
     text = summary.read_text(encoding="utf-8")
-    assert "| a |" in text
-    assert "disabled" in text
+    assert text.index("| a |") < text.index("| b | ⏭ disabled |") < text.index("| c |")
+
+
+def test_all_items_disabled_succeeds_without_telegram_env(monkeypatch, tmp_path):
+    items = [
+        WatchItem(id="a", repo="o/a", strategy="latest",
+                  notify=NotifyCopy(title="a"), enabled=False),
+    ]
+
+    code, delivered, _alerts, state = _run(
+        monkeypatch, tmp_path, items=items, telegram_env=False,
+    )
+
+    assert code == 0
+    assert delivered == []
+    assert state == {}

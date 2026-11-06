@@ -168,14 +168,15 @@ async def main() -> int:
 
     force = os.environ.get("FORCE", "").lower() == "true"
     token = os.environ.get("GITHUB_TOKEN", "")
-    chat_ids = _parse_chat_ids(_require_env("TG_CHAT_ID"), "TG_CHAT_ID")
+    chat_ids = (_parse_chat_ids(_require_env("TG_CHAT_ID"), "TG_CHAT_ID")
+                if active else [])
 
     print(f"Checking {len(active)} watch item(s), skipping {len(skipped)} "
           f"disabled; force={force}")
 
     outcomes = await _detect_all(active, token)
 
-    rows: list[tuple[str, str, str]] = []
+    row_by_id: dict[str, tuple[str, str, str]] = {}
     failed: list[str] = []
     delivered: list[str] = []
 
@@ -186,21 +187,21 @@ async def main() -> int:
         if outcome.error:
             record_failure(state, item.id, now, outcome.error)
             failed.append(item.id)
-            rows.append((item.id, "❌ detection", outcome.error))
+            row_by_id[item.id] = (item.id, "❌ detection", outcome.error)
             continue
 
         detection = outcome.detection
         if detection is None:
             print(f"{item.id}: no releases yet — nothing to do")
             mark_healthy(state, item.id, now)
-            rows.append((item.id, "➖ no releases", ""))
+            row_by_id[item.id] = (item.id, "➖ no releases", "")
             continue
 
         previous = marker_of(state, item.id)
         if not force and detection.marker == previous:
             print(f"{item.id}: unchanged ({_short(detection.marker)})")
             mark_healthy(state, item.id, now)
-            rows.append((item.id, "➖ unchanged", _short(detection.marker)))
+            row_by_id[item.id] = (item.id, "➖ unchanged", _short(detection.marker))
             continue
 
         print(f"{item.id}: update detected "
@@ -219,16 +220,17 @@ async def main() -> int:
         if ok:
             record_delivery(state, item.id, detection.marker, now)
             delivered.append(item.id)
-            rows.append((item.id, "✅ delivered", _short(detection.marker)))
+            row_by_id[item.id] = (item.id, "✅ delivered", _short(detection.marker))
         else:
             record_failure(state, item.id, now, error)
             failed.append(item.id)
-            rows.append((item.id, "❌ delivery", error))
+            row_by_id[item.id] = (item.id, "❌ delivery", error)
 
     # Persist before alerting so a crash during alerts cannot lose markers.
     save_state(state_path, state)
 
-    rows.extend((item.id, "⏭ disabled", "") for item in skipped)
+    rows = [row_by_id.get(item.id, (item.id, "⏭ disabled", ""))
+            for item in items]
 
     admin_raw = os.environ.get("TG_CHAT_ID_ADMIN", "").strip()
     if admin_raw:

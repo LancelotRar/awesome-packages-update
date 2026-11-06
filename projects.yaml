@@ -274,7 +274,7 @@ projects:
       group_url: ""
       channel_url: ""
       project_url: "https://github.com/TDesktop-x64/tdesktop"
-      tag: "#64gram"
+      tag: "#64gram_desktop"
 
   - id: v2rayn
     repo: 2dust/v2rayN
@@ -469,6 +469,4 @@ projects:
       group_url: ""
       channel_url: ""
       project_url: "https://github.com/NextAlone/Nagram-Qt"
-      tag: "#nagram_qt"
-
-      
+      tag: "#nagram_desktop"
