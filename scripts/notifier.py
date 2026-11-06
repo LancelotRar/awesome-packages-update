@@ -63,7 +63,7 @@ def _build_message(asset_name: str, pub_date: str, html_url: str,
     return "\n".join(lines)
 
 
-async def _open_client(cfg: TelegramConfig) -> TelegramClient:
+async def open_client(cfg: TelegramConfig) -> TelegramClient:
     """Start a bot Telethon client, failing fast on auth errors.
 
     NOTE: Do NOT use ``async with TelegramClient(…)`` — its
@@ -102,12 +102,16 @@ async def _send_batch(client: TelegramClient, chat_id: int, batch: list,
     )
 
 
-async def send_text(text: str, cfg: TelegramConfig) -> bool:
+async def send_text(text: str, cfg: TelegramConfig, client=None) -> bool:
     """Send a plain text message (no files) to every chat.
 
-    Returns ``True`` only when every chat received it.
+    Pass *client* to reuse a connection owned by the caller; otherwise one
+    is opened here and closed before returning. Returns ``True`` only when
+    every chat received it.
     """
-    client = await _open_client(cfg)
+    owns_client = client is None
+    if client is None:
+        client = await open_client(cfg)
     sent = 0
     try:
         for raw_cid in cfg.chat_ids:
@@ -122,14 +126,16 @@ async def send_text(text: str, cfg: TelegramConfig) -> bool:
             except Exception as e:
                 print(f"::error::Failed to send text to {raw_cid}: {e}")
     finally:
-        await client.disconnect()  # type: ignore[misc]
+        if owns_client:
+            await client.disconnect()  # type: ignore[misc]
     return sent == len(cfg.chat_ids)
 
 
 async def notify(release_data: dict, cfg: TelegramConfig,
                  github_token: str = "",
                  include_filter: str = "",
-                 exclude_filter: str = "") -> bool:
+                 exclude_filter: str = "",
+                 client=None) -> bool:
     """Send a release notification (with matching assets) to every chat.
 
     Files are streamed from GitHub straight to Telegram CDN (no local
@@ -147,14 +153,23 @@ async def notify(release_data: dict, cfg: TelegramConfig,
                           cfg.notify_channel_url, cfg.notify_project_url,
                           cfg.notify_description, cfg.notify_tag)
 
-    # --- Telethon client ---
-    client = await _open_client(cfg)
+    # --- Decide whether this delivery has files at all ---
+    matched_assets = get_matching_assets(release_data,
+                                         include_filter, exclude_filter)
+    if include_filter.strip() and not matched_assets:
+        print(f"::error::No asset in {release_data.get('tag_name', '?')} "
+              f"matched ASSET_INCLUDE={include_filter!r} — treating as a "
+              "delivery failure so the marker is not advanced", flush=True)
+        return False
+
+    # --- Telethon client (reused across the run when the caller passes one) ---
+    owns_client = client is None
+    if client is None:
+        client = await open_client(cfg)
 
     all_ok = True
 
     # --- Upload assets once (shared across all chats) ---
-    matched_assets = get_matching_assets(release_data,
-                                         include_filter, exclude_filter)
     uploaded_medias: list | None = None
     file_attrs: list | None = None
 
@@ -234,7 +249,8 @@ async def notify(release_data: dict, cfg: TelegramConfig,
                 break
             except Exception as e:
                 print(f"::error::Failed to notify {raw_cid}: {e}")
-        await client.disconnect()  # type: ignore[misc]
+        if owns_client:
+            await client.disconnect()  # type: ignore[misc]
         # False -> caller skips persistence and retries on the next run.
         # Contract: True only when *every* chat was notified.
         return sent == len(cfg.chat_ids)
@@ -278,7 +294,8 @@ async def notify(release_data: dict, cfg: TelegramConfig,
                 all_ok = False
                 continue
     finally:
-        await client.disconnect()  # type: ignore[misc]
-        print("Telethon client disconnected")
+        if owns_client:
+            await client.disconnect()  # type: ignore[misc]
+            print("Telethon client disconnected")
 
     return all_ok

@@ -44,7 +44,7 @@ def _clear_env(monkeypatch):
 
 def _run(monkeypatch, tmp_path, *, markers=None, notify_ok=True,
          items=None, project=None, force=False, admin=None,
-         detected=None, summary=None, telegram_env=True):
+         detected=None, summary=None, telegram_env=True, opened=None):
     items = items or _items()
     markers = markers or {}
 
@@ -80,16 +80,26 @@ def _run(monkeypatch, tmp_path, *, markers=None, notify_ok=True,
     delivered: list[str] = []
     alerts: list[str] = []
 
-    async def fake_notify(release, cfg, token, include, exclude):
+    async def fake_notify(release, cfg, token, include, exclude, client=None):
         delivered.append(cfg.notify_title)
         return notify_ok
 
-    async def fake_send_text(text, cfg):
+    async def fake_send_text(text, cfg, client=None):
         alerts.append(text)
         return True
 
+    class _FakeClient:
+        async def disconnect(self):
+            pass
+
+    async def fake_open_client(cfg):
+        if opened is not None:
+            opened.append(cfg)
+        return _FakeClient()
+
     monkeypatch.setattr(run_checks, "notify", fake_notify)
     monkeypatch.setattr(run_checks, "send_text", fake_send_text)
+    monkeypatch.setattr(run_checks, "open_client", fake_open_client)
 
     code = asyncio.run(run_checks.main())
     return code, delivered, alerts, load_state(tmp_path / "state.json")
@@ -291,3 +301,31 @@ def test_all_items_disabled_succeeds_without_telegram_env(monkeypatch, tmp_path)
     assert code == 0
     assert delivered == []
     assert state == {}
+
+
+def test_one_client_is_reused_for_every_delivery(monkeypatch, tmp_path):
+    opened: list = []
+
+    code, delivered, _alerts, _state = _run(
+        monkeypatch, tmp_path, opened=opened,
+    )
+
+    assert code == 0
+    assert delivered == ["a", "b"]
+    assert len(opened) == 1
+
+
+def test_no_client_is_opened_when_nothing_needs_delivery(monkeypatch, tmp_path):
+    save_state(tmp_path / "state.json", {
+        "a": {"marker": "m2"},
+        "b": {"marker": "m2"},
+    })
+    opened: list = []
+
+    code, delivered, _alerts, _state = _run(
+        monkeypatch, tmp_path, opened=opened,
+    )
+
+    assert code == 0
+    assert delivered == []
+    assert opened == []

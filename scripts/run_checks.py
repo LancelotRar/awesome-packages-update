@@ -29,7 +29,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from detector import Detection, detect
-from notifier import TelegramConfig, notify, send_text
+from notifier import TelegramConfig, notify, open_client, send_text
 from state import (
     load_state,
     mark_alerted,
@@ -98,6 +98,16 @@ def _telegram(item: WatchItem, chat_ids: list[int]) -> TelegramConfig:
         notify_project_url=copy.project_url,
         notify_description=copy.description,
         notify_tag=copy.tag,
+    )
+
+
+def _credentials(chat_ids: list[int]) -> TelegramConfig:
+    """Build a client-only config; the same connection serves every item."""
+    return TelegramConfig(
+        bot_token=_require_env("TG_BOT_TOKEN"),
+        chat_ids=chat_ids,
+        api_id=int(_require_env("TG_API_ID")),
+        api_hash=_require_env("TG_API_HASH"),
     )
 
 
@@ -179,6 +189,7 @@ async def main() -> int:
     row_by_id: dict[str, tuple[str, str, str]] = {}
     failed: list[str] = []
     delivered: list[str] = []
+    client = None  # opened lazily, reused for every delivery and alert
 
     for outcome in outcomes:
         item = outcome.item
@@ -210,8 +221,11 @@ async def main() -> int:
 
         error = "delivery failed"
         try:
+            if client is None:
+                client = await open_client(_credentials(chat_ids))
             ok = await notify(detection.release, _telegram(item, chat_ids),
-                              token, item.asset_include, item.asset_exclude)
+                              token, item.asset_include, item.asset_exclude,
+                              client=client)
         except Exception as e:  # delivery errors are per-item, not fatal
             ok = False
             error = str(e)
@@ -243,7 +257,10 @@ async def main() -> int:
             text = _alert_text(item, int(entry.get("failures", 0)),
                                str(entry.get("last_error", "")))
             try:
-                if await send_text(text, _telegram(item, admin_ids)):
+                if client is None:
+                    client = await open_client(_credentials(admin_ids))
+                if await send_text(text, _telegram(item, admin_ids),
+                                   client=client):
                     mark_alerted(state, item.id)
                     alerted = True
             except Exception as e:
@@ -256,6 +273,9 @@ async def main() -> int:
         if pending:
             print("::warning::Failure alerts pending but TG_CHAT_ID_ADMIN "
                   f"is unset: {', '.join(pending)}")
+
+    if client is not None:
+        await client.disconnect()
 
     _write_summary(rows)
     unchanged = len(active) - len(delivered) - len(failed)
