@@ -1,58 +1,247 @@
 {
+  "3fui": {
+    "alerted": false,
+    "failures": 1,
+    "last_checked": "2026-11-06T12:51:23Z",
+    "last_error": "Telegram auth failed — check TG_API_ID / TG_API_HASH / TG_BOT_TOKEN: A wait of 2389 seconds is required (caused by ImportBotAuthorizationRequest)",
+    "marker": ""
+  },
+  "64gram-desktop": {
+    "alerted": false,
+    "failures": 1,
+    "last_checked": "2026-11-06T12:50:57Z",
+    "last_error": "Telegram auth failed — check TG_API_ID / TG_API_HASH / TG_BOT_TOKEN: A wait of 2414 seconds is required (caused by ImportBotAuthorizationRequest)",
+    "marker": ""
+  },
   "ainanplayer": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-06T10:21:12Z",
+    "last_checked": "2026-11-06T12:31:11Z",
     "last_error": "",
     "marker": "2026-11-03T14:33:47Z"
   },
   "ant-video": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-06T10:21:12Z",
+    "last_checked": "2026-11-06T12:31:11Z",
     "last_error": "",
     "marker": "2026-09-02T18:19:36Z"
+  },
+  "bbll": {
+    "alerted": false,
+    "failures": 0,
+    "last_checked": "2026-11-06T12:42:03Z",
+    "last_error": "",
+    "marker": "2026-06-10T14:57:25Z"
   },
   "bettbox": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-06T10:21:12Z",
+    "last_checked": "2026-11-06T12:31:11Z",
     "last_error": "",
     "marker": "2026-10-22T07:16:03Z"
+  },
+  "bitwarden-android": {
+    "alerted": false,
+    "failures": 0,
+    "last_checked": "2026-11-06T12:41:56Z",
+    "last_error": "",
+    "marker": "2026-11-05T19:38:40Z"
+  },
+  "bitwarden-win": {
+    "alerted": false,
+    "failures": 0,
+    "last_checked": "2026-11-06T12:31:11Z",
+    "last_error": "",
+    "marker": "2026-11-05T17:02:34Z"
+  },
+  "clash-verge-rev": {
+    "alerted": false,
+    "failures": 1,
+    "last_checked": "2026-11-06T12:51:11Z",
+    "last_error": "Telegram auth failed — check TG_API_ID / TG_API_HASH / TG_BOT_TOKEN: A wait of 2400 seconds is required (caused by ImportBotAuthorizationRequest)",
+    "marker": ""
   },
   "cmfa": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-06T10:21:12Z",
+    "last_checked": "2026-11-06T12:31:11Z",
     "last_error": "",
     "marker": "2026-10-21T16:44:10Z"
+  },
+  "defender-remover": {
+    "alerted": false,
+    "failures": 1,
+    "last_checked": "2026-11-06T12:51:09Z",
+    "last_error": "Telegram auth failed — check TG_API_ID / TG_API_HASH / TG_BOT_TOKEN: A wait of 2403 seconds is required (caused by ImportBotAuthorizationRequest)",
+    "marker": ""
   },
   "flclash": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-06T10:21:12Z",
+    "last_checked": "2026-11-06T12:31:11Z",
     "last_error": "",
     "marker": "2026-11-04T07:54:38Z"
   },
   "fongmi-module": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-06T10:21:12Z",
+    "last_checked": "2026-11-06T12:31:11Z",
     "last_error": "",
     "marker": "97619b4e5218230d8c380a8db17cddb5490d5f4df53419c452bbda870a58374e"
   },
   "fongmitv": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-06T10:23:58Z",
+    "last_checked": "2026-11-06T12:31:11Z",
     "last_error": "",
     "marker": "2026-11-01T18:10:16Z"
+  },
+  "gkd": {
+    "alerted": false,
+    "failures": 0,
+    "last_checked": "2026-11-06T12:42:28Z",
+    "last_error": "",
+    "marker": "2026-11-06T06:39:43Z"
+  },
+  "handbrake": {
+    "alerted": false,
+    "failures": 0,
+    "last_checked": "2026-11-06T12:48:40Z",
+    "last_error": "",
+    "marker": "2026-06-07T19:08:25Z"
+  },
+  "heu-kms-activator": {
+    "alerted": false,
+    "failures": 1,
+    "last_checked": "2026-11-06T12:51:25Z",
+    "last_error": "Telegram auth failed — check TG_API_ID / TG_API_HASH / TG_BOT_TOKEN: A wait of 2387 seconds is required (caused by ImportBotAuthorizationRequest)",
+    "marker": ""
+  },
+  "jellyfin-androidtv": {
+    "alerted": false,
+    "failures": 1,
+    "last_checked": "2026-11-06T12:50:55Z",
+    "last_error": "Telegram auth failed — check TG_API_ID / TG_API_HASH / TG_BOT_TOKEN: A wait of 2417 seconds is required (caused by ImportBotAuthorizationRequest)",
+    "marker": ""
+  },
+  "lenovo-legion-toolkit": {
+    "alerted": false,
+    "failures": 0,
+    "last_checked": "2026-11-06T12:50:07Z",
+    "last_error": "",
+    "marker": "2026-11-03T22:06:01Z"
+  },
+  "localsend": {
+    "alerted": false,
+    "failures": 1,
+    "last_checked": "2026-11-06T12:51:30Z",
+    "last_error": "Telegram auth failed — check TG_API_ID / TG_API_HASH / TG_BOT_TOKEN: A wait of 2382 seconds is required (caused by ImportBotAuthorizationRequest)",
+    "marker": ""
+  },
+  "moonlight": {
+    "alerted": false,
+    "failures": 0,
+    "last_checked": "2026-11-06T12:42:46Z",
+    "last_error": "",
+    "marker": "2026-11-06T07:27:22Z"
+  },
+  "nagram-desktop": {
+    "alerted": false,
+    "failures": 1,
+    "last_checked": "2026-11-06T12:51:32Z",
+    "last_error": "Telegram auth failed — check TG_API_ID / TG_API_HASH / TG_BOT_TOKEN: A wait of 2379 seconds is required (caused by ImportBotAuthorizationRequest)",
+    "marker": ""
+  },
+  "notepad3": {
+    "alerted": false,
+    "failures": 0,
+    "last_checked": "2026-11-06T12:43:59Z",
+    "last_error": "",
+    "marker": "2026-06-02T11:26:58Z"
+  },
+  "powershell": {
+    "alerted": false,
+    "failures": 1,
+    "last_checked": "2026-11-06T12:51:16Z",
+    "last_error": "Telegram auth failed — check TG_API_ID / TG_API_HASH / TG_BOT_TOKEN: A wait of 2395 seconds is required (caused by ImportBotAuthorizationRequest)",
+    "marker": ""
+  },
+  "powertoys": {
+    "alerted": false,
+    "failures": 1,
+    "last_checked": "2026-11-06T12:51:14Z",
+    "last_error": "Telegram auth failed — check TG_API_ID / TG_API_HASH / TG_BOT_TOKEN: A wait of 2398 seconds is required (caused by ImportBotAuthorizationRequest)",
+    "marker": ""
+  },
+  "stranslate": {
+    "alerted": false,
+    "failures": 1,
+    "last_checked": "2026-11-06T12:51:21Z",
+    "last_error": "Telegram auth failed — check TG_API_ID / TG_API_HASH / TG_BOT_TOKEN: A wait of 2391 seconds is required (caused by ImportBotAuthorizationRequest)",
+    "marker": ""
+  },
+  "sunshine": {
+    "alerted": false,
+    "failures": 0,
+    "last_checked": "2026-11-06T12:44:17Z",
+    "last_error": "",
+    "marker": "2026-11-06T11:56:04Z"
+  },
+  "syncthing": {
+    "alerted": false,
+    "failures": 1,
+    "last_checked": "2026-11-06T12:51:02Z",
+    "last_error": "Telegram auth failed — check TG_API_ID / TG_API_HASH / TG_BOT_TOKEN: A wait of 2410 seconds is required (caused by ImportBotAuthorizationRequest)",
+    "marker": ""
+  },
+  "tailscale-android": {
+    "alerted": false,
+    "failures": 0,
+    "last_checked": "2026-11-06T12:45:56Z",
+    "last_error": "",
+    "marker": "2026-11-03T17:35:11Z"
+  },
+  "tubatools": {
+    "alerted": false,
+    "failures": 1,
+    "last_checked": "2026-11-06T12:51:27Z",
+    "last_error": "Telegram auth failed — check TG_API_ID / TG_API_HASH / TG_BOT_TOKEN: A wait of 2384 seconds is required (caused by ImportBotAuthorizationRequest)",
+    "marker": ""
+  },
+  "v2rayn": {
+    "alerted": false,
+    "failures": 1,
+    "last_checked": "2026-11-06T12:51:00Z",
+    "last_error": "Telegram auth failed — check TG_API_ID / TG_API_HASH / TG_BOT_TOKEN: A wait of 2412 seconds is required (caused by ImportBotAuthorizationRequest)",
+    "marker": ""
   },
   "webhtv": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-06T10:45:11Z",
+    "last_checked": "2026-11-06T12:31:11Z",
     "last_error": "",
     "marker": "2026-09-24T05:06:22Z"
+  },
+  "windows-terminal": {
+    "alerted": false,
+    "failures": 1,
+    "last_checked": "2026-11-06T12:51:19Z",
+    "last_error": "Telegram auth failed — check TG_API_ID / TG_API_HASH / TG_BOT_TOKEN: A wait of 2393 seconds is required (caused by ImportBotAuthorizationRequest)",
+    "marker": ""
+  },
+  "winhance": {
+    "alerted": false,
+    "failures": 1,
+    "last_checked": "2026-11-06T12:51:04Z",
+    "last_error": "Telegram auth failed — check TG_API_ID / TG_API_HASH / TG_BOT_TOKEN: A wait of 2407 seconds is required (caused by ImportBotAuthorizationRequest)",
+    "marker": ""
+  },
+  "winutil": {
+    "alerted": false,
+    "failures": 1,
+    "last_checked": "2026-11-06T12:51:07Z",
+    "last_error": "Telegram auth failed — check TG_API_ID / TG_API_HASH / TG_BOT_TOKEN: A wait of 2405 seconds is required (caused by ImportBotAuthorizationRequest)",
+    "marker": ""
   }
 }
