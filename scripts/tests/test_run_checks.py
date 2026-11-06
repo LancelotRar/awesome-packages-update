@@ -35,30 +35,31 @@ def _detection(marker: str) -> Detection:
     )
 
 
+def _clear_env(monkeypatch):
+    """Remove every env var that changes how ``main()`` resolves paths."""
+    for var in ("PROJECT", "FORCE", "TG_CHAT_ID_ADMIN", "GITHUB_STEP_SUMMARY",
+                "WATCHLIST", "STATE_FILE"):
+        monkeypatch.delenv(var, raising=False)
+
+
 def _run(monkeypatch, tmp_path, *, markers=None, notify_ok=True,
          items=None, project=None, force=False, admin=None):
     items = items or _items()
     markers = markers or {}
 
+    _clear_env(monkeypatch)
     monkeypatch.setenv("TG_CHAT_ID", "111")
     monkeypatch.setenv("TG_BOT_TOKEN", "TOK")
     monkeypatch.setenv("TG_API_ID", "1")
     monkeypatch.setenv("TG_API_HASH", "H")
-    monkeypatch.delenv("GITHUB_STEP_SUMMARY", raising=False)
     monkeypatch.setenv("STATE_FILE", str(tmp_path / "state.json"))
     monkeypatch.setattr(run_checks, "load_watchlist", lambda path: items)
 
-    if project is None:
-        monkeypatch.delenv("PROJECT", raising=False)
-    else:
+    if project is not None:
         monkeypatch.setenv("PROJECT", project)
     if force:
         monkeypatch.setenv("FORCE", "true")
-    else:
-        monkeypatch.delenv("FORCE", raising=False)
-    if admin is None:
-        monkeypatch.delenv("TG_CHAT_ID_ADMIN", raising=False)
-    else:
+    if admin is not None:
         monkeypatch.setenv("TG_CHAT_ID_ADMIN", admin)
 
     def fake_detect(item, token):
@@ -171,3 +172,43 @@ def test_alert_after_three_consecutive_failures(monkeypatch, tmp_path):
     assert "a" in alerts[0]
     assert state["a"]["failures"] == 3
     assert state["a"]["alerted"] is True
+
+
+def _capture_default_paths(monkeypatch) -> tuple[Path, Path]:
+    """Run main() without WATCHLIST/STATE_FILE, returning resolved paths.
+
+    Stubs the file-touching collaborators so the defaults can be asserted
+    without reading or writing the real watch list and state file.
+    """
+    _clear_env(monkeypatch)
+    monkeypatch.setenv("TG_CHAT_ID", "111")
+    seen: list[Path] = []
+
+    def fake_load_watchlist(path):
+        seen.append(Path(path))
+        return []
+
+    def fake_load_state(path):
+        seen.append(Path(path))
+        return {}
+
+    monkeypatch.setattr(run_checks, "load_watchlist", fake_load_watchlist)
+    monkeypatch.setattr(run_checks, "load_state", fake_load_state)
+    monkeypatch.setattr(run_checks, "save_state", lambda path, state: None)
+
+    assert asyncio.run(run_checks.main()) == 0
+    return seen[0], seen[1]
+
+
+def test_default_watchlist_resolves_to_repository_root(monkeypatch):
+    watchlist, _state = _capture_default_paths(monkeypatch)
+
+    repo_root = Path(run_checks.__file__).resolve().parent.parent
+    assert watchlist == repo_root / "projects.yaml"
+
+
+def test_default_state_file_resolves_to_repository_root(monkeypatch):
+    _watchlist, state = _capture_default_paths(monkeypatch)
+
+    repo_root = Path(run_checks.__file__).resolve().parent.parent
+    assert state == repo_root / "data" / "state.json"

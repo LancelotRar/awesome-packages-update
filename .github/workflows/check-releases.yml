@@ -66,6 +66,12 @@ jobs:
           FORCE: ${{ inputs.force || '' }}
         run: python3 scripts/run_checks.py
 
+      - name: Run unit tests
+        if: always()
+        run: |
+          python3 -m pip install pytest==9.1.1
+          python3 -m pytest scripts/tests -q
+
       - name: Persist state
         if: always()
         run: |
