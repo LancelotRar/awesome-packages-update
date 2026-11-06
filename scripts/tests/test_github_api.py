@@ -127,16 +127,6 @@ def test_get_json_raises_after_429_retries_exhausted(monkeypatch):
     assert sleeps == [1, 1]
 
 
-def test_fetch_latest_release_retries_429(monkeypatch):
-    _, sleeps = _install(
-        monkeypatch,
-        _http_error(429, {"Retry-After": "2"}, reason="rate limited"),
-        _Resp(b'[{"tag_name": "v9"}]'),
-    )
-    assert github_api.fetch_latest_release("foo/bar") == {"tag_name": "v9"}
-    assert sleeps == [2]
-
-
 # --- preserved behavior: guards on existing paths -----------------------
 
 def test_get_json_permission_403_fails_without_retry(monkeypatch):
@@ -164,11 +154,6 @@ def test_get_json_invalid_json_raises(monkeypatch):
     _install(monkeypatch, _Resp(b"not json"))
     with pytest.raises(RuntimeError, match="Failed to fetch data"):
         github_api._get_json("https://api.github.com/x")
-
-
-def test_fetch_latest_release_empty_returns_none(monkeypatch):
-    _install(monkeypatch, _Resp(b"[]"))
-    assert github_api.fetch_latest_release("foo/bar") is None
 
 
 # --- release list --------------------------------------------------------

@@ -1,8 +1,8 @@
 """Detection strategies: decide whether a watch item has an update.
 
-``latest`` compares the newest release's ``updated_at``. When a tag
-filter is configured, "newest" means the newest release whose tag matches
-any pattern. ``tag`` fingerprints a named release's matched assets so
+``latest`` compares the newest stable release's ``updated_at``: drafts and
+prereleases never qualify. When a tag filter is configured, "newest" means
+the newest stable release whose tag matches any pattern. ``tag`` fingerprints a named release's matched assets so
 in-place asset replacement is detected even though the release itself
 never changes.
 """
@@ -15,7 +15,6 @@ import json
 from dataclasses import dataclass
 
 from github_api import (
-    fetch_latest_release,
     fetch_release_by_tag,
     fetch_releases,
     get_matching_assets,
@@ -63,28 +62,37 @@ def _require_release(release: dict | None, tag: str, item: WatchItem) -> dict:
     return release
 
 
-def _select_by_tag_filter(item: WatchItem, releases: list[dict]) -> dict:
-    """Return the newest non-prerelease release whose tag matches a pattern.
+def _select_release(item: WatchItem, releases: list[dict]) -> dict:
+    """Return the newest release eligible for this watch item.
 
-    Matching is glob-style and case-insensitive; patterns are OR'd. An
-    entry without a tag can never be selected. Raises when nothing
-    matches, mirroring the ``tag`` strategy's "tag not found" failure.
+    Drafts and prereleases never qualify, so ``latest`` always tracks the
+    newest stable release — not whatever the feed lists first.
+    ``release_tag_include``, when set, further restricts the tag with
+    case-insensitive glob patterns (OR'd).
+
+    Raises when nothing qualifies, mirroring the ``tag`` strategy's
+    "tag not found" failure: a stale filter must surface, not go quiet.
     """
+    patterns = item.release_tag_include
+
     def _matches(tag: str) -> bool:
+        if not patterns:
+            return True
         lowered = tag.lower()
-        return any(fnmatch.fnmatchcase(lowered, p.lower())
-                   for p in item.release_tag_include)
+        return any(fnmatch.fnmatchcase(lowered, p.lower()) for p in patterns)
 
     candidates = [
         r for r in releases
         if isinstance(r, dict) and r.get("tag_name")
-        and not r.get("prerelease") and _matches(r["tag_name"])
+        and not r.get("draft") and not r.get("prerelease")
+        and _matches(r["tag_name"])
     ]
     if not candidates:
-        patterns = ", ".join(item.release_tag_include)
-        raise RuntimeError(
-            f"No release tag in {item.repo} matched: {patterns}"
-        )
+        if patterns:
+            raise RuntimeError(
+                f"No release tag in {item.repo} matched: {', '.join(patterns)}"
+            )
+        raise RuntimeError(f"No stable release in {item.repo}")
     return max(candidates, key=lambda r: r.get("published_at") or "")
 
 
@@ -93,13 +101,11 @@ def detect(item: WatchItem, token: str = "") -> Detection | None:
     repository has no releases yet (``latest`` only).
     """
     if item.strategy == STRATEGY_LATEST:
-        if not item.release_tag_include:
-            release = fetch_latest_release(item.repo, token)
-            if release is None:
-                return None
-            return _latest_detection(release)
+        releases = fetch_releases(item.repo, token)
+        if not releases:
+            return None
 
-        selected = _select_by_tag_filter(item, fetch_releases(item.repo, token))
+        selected = _select_release(item, releases)
         tag = selected["tag_name"]
         release = _require_release(
             fetch_release_by_tag(item.repo, tag, token), tag, item

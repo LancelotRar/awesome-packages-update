@@ -141,25 +141,6 @@ def _get_json(url: str, token: str = "", what: str = "data") -> Any:
         raise RuntimeError(f"Failed to fetch {what}: {e}") from e
 
 
-def fetch_latest_release(repo: str, token: str = "") -> dict | None:
-    """Fetch the latest release from *repo*.
-
-    Returns the release dict, or *None* if the repository has no
-    releases yet.
-    """
-    url = f"{_GITHUB_API}/repos/{repo}/releases?per_page=1"
-    req = urllib.request.Request(url, headers=_build_headers(token))
-    raw = _fetch_bytes(req, timeout=300, what="releases")
-    try:
-        releases = json.loads(raw)
-    except json.JSONDecodeError as e:
-        raise RuntimeError(f"Failed to fetch releases: {e}") from e
-
-    if not releases:
-        return None
-    return releases[0]
-
-
 def fetch_releases(repo: str, token: str = "") -> list[dict]:
     """Fetch the release list of *repo*, newest first.
 

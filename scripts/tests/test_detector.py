@@ -130,21 +130,49 @@ def test_selected_tag_vanishing_before_full_fetch_raises(monkeypatch):
         detector.detect(_item("desktop-*"))
 
 
-def test_without_tag_filter_the_single_latest_request_is_used(monkeypatch):
-    latest = _release("v9", "2026-01-01T00:00:00Z",
-                      updated="2026-01-05T00:00:00Z", assets=3)
-    monkeypatch.setattr(detector, "fetch_latest_release",
-                        lambda repo, token="": latest)
-
-    def _unexpected(*args, **kwargs):
-        raise AssertionError("release list must not be fetched without a tag filter")
-
-    monkeypatch.setattr(detector, "fetch_releases", _unexpected)
-    monkeypatch.setattr(detector, "fetch_release_by_tag", _unexpected)
+def test_without_tag_filter_picks_newest_stable_release(monkeypatch):
+    releases = [
+        _release("v9", "2026-01-01T00:00:00Z"),
+        _release("v10-beta", "2026-02-01T00:00:00Z", prerelease=True),
+        _release("v10", "2026-03-01T00:00:00Z"),
+    ]
+    releases[2]["draft"] = False
+    full = _release("v10", "2026-03-01T00:00:00Z",
+                    updated="2026-03-02T00:00:00Z", assets=3)
+    _patch(monkeypatch, releases, full)
 
     result = detector.detect(WatchItem(id="plain", repo="o/plain",
                                        strategy=STRATEGY_LATEST))
 
-    assert result.release["tag_name"] == "v9"
-    assert result.marker == "2026-01-05T00:00:00Z"
+    assert result is not None
+    assert result.release["tag_name"] == "v10"
+    assert result.marker == "2026-03-02T00:00:00Z"
     assert result.asset_count == 3
+
+
+def test_draft_release_is_never_selected(monkeypatch):
+    draft = _release("v11", "2026-04-01T00:00:00Z")
+    draft["draft"] = True
+    stable = _release("v10", "2026-03-01T00:00:00Z")
+    _patch(monkeypatch, [draft, stable], stable)
+
+    result = detector.detect(WatchItem(id="plain", repo="o/plain",
+                                       strategy=STRATEGY_LATEST))
+
+    assert result.release["tag_name"] == "v10"
+
+
+def test_no_releases_returns_none(monkeypatch):
+    _patch(monkeypatch, [], None)
+
+    assert detector.detect(WatchItem(id="plain", repo="o/plain",
+                                     strategy=STRATEGY_LATEST)) is None
+
+
+def test_only_prereleases_raises(monkeypatch):
+    _patch(monkeypatch, [_release("v1-beta", "2026-01-01T00:00:00Z",
+                                  prerelease=True)], None)
+
+    with pytest.raises(RuntimeError, match="No stable release"):
+        detector.detect(WatchItem(id="plain", repo="o/plain",
+                                  strategy=STRATEGY_LATEST))
