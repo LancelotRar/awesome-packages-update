@@ -18,6 +18,31 @@
 | `latest` | 最新 Release 的 `updated_at` | 常规发版 |
 | `tag` | 指定 tag 下匹配资产的 `(name, size, updated_at)` 指纹 | 长期不换 tag、只原地替换资产的滚动 Release |
 
+#### 按 tag 通配选择
+
+一个仓库同时为多条产品线发 Release 时（例如 `bitwarden/clients` 的 `desktop-*`、`cli-*`、`browser-*`、`web-*`），可以在 `latest` 条目上加可选的 `release_tag_include`（非空字符串列表），只跟随其中一系列：
+
+- 先取仓库的 Release 列表，丢弃 prerelease 和没有 tag 的条目；
+- 再用 glob（`*`、`?` 等，不区分大小写）逐条匹配，任一 pattern 命中即可；
+- 在命中项中取 `published_at` 最新的一个，读取该 tag 的完整 Release 及其资产；
+- 标记仍为该 Release 的 `updated_at`，与不写此字段时相同。
+
+没有任何条目命中时按检测失败处理：本次不投递、标记不推进、下次运行重试，不会静默跳过。该字段只与 `latest` 搭配，写在 `strategy: tag` 条目上会被清单校验拒绝。
+
+```yaml
+  - id: bitwarden-desktop
+    repo: bitwarden/clients
+    strategy: latest
+    release_tag_include: ["desktop-*"]
+    notify:
+      title: "Bitwarden Desktop 新版本发布！"
+      description: "开源密码管理器桌面版"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/bitwarden/clients"
+      tag: "#bitwardendesktop"
+```
+
 ### 资产过滤
 
 `asset_include` / `asset_exclude` 使用同一种语法：
