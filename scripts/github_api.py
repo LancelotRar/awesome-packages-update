@@ -145,8 +145,9 @@ def fetch_releases(repo: str, token: str = "") -> list[dict]:
     """Fetch the release list of *repo*, newest first.
 
     Returns an empty list when the repository has no releases. Used by the
-    ``latest`` strategy when a tag filter has to pick a release instead of
-    accepting whatever the feed advertises first.
+    ``latest`` strategy to pick the newest stable release: the feed's first
+    entry may be a draft or a prerelease, and the list endpoint truncates
+    each release's ``assets``, so the chosen tag is fetched again in full.
     """
     url = f"{_GITHUB_API}/repos/{repo}/releases?per_page=100"
     releases = _get_json(url, token, what="releases")

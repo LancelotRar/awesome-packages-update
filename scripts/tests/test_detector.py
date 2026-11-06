@@ -1,4 +1,4 @@
-"""Unit tests for ``detector`` — tag filter on the ``latest`` strategy.
+"""Unit tests for ``detector`` — stable-only selection on ``latest``.
 
 ``detector`` lives in the parent scripts directory (same convention as
 ``test_github_api.py``), so make it importable first. The GitHub-facing

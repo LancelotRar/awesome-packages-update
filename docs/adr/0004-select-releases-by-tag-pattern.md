@@ -12,7 +12,7 @@ We added an optional `release_tag_include` list to `latest`: it lists the reposi
 
 ## Consequences
 
-- A filtered entry costs two requests (release list, then the selected tag) instead of one; unfiltered entries keep the single-request path.
+- Every `latest` entry now costs two requests (release list, then the selected tag): the list endpoint truncates each release's `assets`, so the full release has to be fetched before filtering files.
 - Maintainers must know upstream tag conventions. Patterns are OR'd and matching is case-insensitive, so `desktop-*` is enough to exclude `cli-*`; a prerelease is never selected, even when only a prerelease matches.
 - No match is a failure (marker not advanced, retried next run) rather than a skip, so a stale pattern surfaces instead of silently dropping the project.
-- The list is one page (100 releases), so patterns can only match tags among the newest 100 releases.
+- The list is one page (100 releases), so selection only sees the newest 100 releases — for filtered and unfiltered entries alike.

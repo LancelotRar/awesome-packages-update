@@ -14,7 +14,7 @@ The rule that decides when a watch item counts as updated.
 _Avoid_: checker, watcher type
 
 **Tag filter**:
-The optional pattern set that narrows `latest` to releases whose tag matches any pattern. Patterns use glob syntax and ignore case; a prerelease is never selected. The newest matching release is the one followed.
+The optional pattern set that narrows `latest` to releases whose tag matches any pattern. Patterns use glob syntax and ignore case; a draft or prerelease is never selected. The newest matching release is the one followed.
 _Avoid_: tag mask, tag include, tag whitelist
 
 **Marker**:

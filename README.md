@@ -15,19 +15,19 @@
 
 | 策略 | 标记 | 适用场景 |
 | --- | --- | --- |
-| `latest` | 最新 Release 的 `updated_at` | 常规发版 |
+| `latest` | 最新**稳定版** Release 的 `updated_at`（跳过 draft 与 prerelease） | 常规发版 |
 | `tag` | 指定 tag 下匹配资产的 `(name, size, updated_at)` 指纹 | 长期不换 tag、只原地替换资产的滚动 Release |
 
 #### 按 tag 通配选择
 
 一个仓库同时为多条产品线发 Release 时（例如 `bitwarden/clients` 的 `desktop-*`、`cli-*`、`browser-*`、`web-*`），可以在 `latest` 条目上加可选的 `release_tag_include`（非空字符串列表），只跟随其中一系列：
 
-- 先取仓库的 Release 列表，丢弃 prerelease 和没有 tag 的条目；
+- 先取仓库的 Release 列表，丢弃 draft、prerelease 和没有 tag 的条目；
 - 再用 glob（`*`、`?` 等，不区分大小写）逐条匹配，任一 pattern 命中即可；
 - 在命中项中取 `published_at` 最新的一个，读取该 tag 的完整 Release 及其资产；
 - 标记仍为该 Release 的 `updated_at`，与不写此字段时相同。
 
-没有任何条目命中时按检测失败处理：本次不投递、标记不推进、下次运行重试，不会静默跳过。该字段只与 `latest` 搭配，写在 `strategy: tag` 条目上会被清单校验拒绝；显式写成 `[]` 同样会被拒绝，省略该字段才表示「不按 tag 过滤」。
+没有任何条目命中时按检测失败处理：本次不投递、标记不推进、下次运行重试，不会静默跳过。不带 `release_tag_include` 的 `latest` 条目同理：如果仓库只有 prerelease 或 draft，会以「没有稳定版」失败，而不是把预发布当成正式版。该字段只与 `latest` 搭配，写在 `strategy: tag` 条目上会被清单校验拒绝；显式写成 `[]` 同样会被拒绝，省略该字段才表示「不按 tag 过滤」。
 
 ```yaml
   - id: bitwarden-win
@@ -53,6 +53,8 @@
 - 加号连接 = 同时匹配（AND）
 - `exclude` 优先于 `include`
 - 以 `.` 开头的 token 按后缀匹配，其余按不区分大小写的子串匹配
+
+声明了 `asset_include` 却一个资产都没命中时，该条按投递失败处理：不推进 marker，下次运行重试。这样过滤式过期会暴露出来，而不是静默退化成只有文字的通知。
 
 例：`.apk+arm64-v8a, .dmg+arm64` 表示「APK 且文件名含 arm64-v8a」或「DMG 且含 arm64」。
 

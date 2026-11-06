@@ -44,7 +44,7 @@ def _clear_env(monkeypatch):
 
 def _run(monkeypatch, tmp_path, *, markers=None, notify_ok=True,
          items=None, project=None, force=False, admin=None,
-         detected=None, summary=None, telegram_env=True, opened=None):
+         detected=None, summary=None, telegram_env=True, opened=None, open_error=None):
     items = items or _items()
     markers = markers or {}
 
@@ -95,6 +95,8 @@ def _run(monkeypatch, tmp_path, *, markers=None, notify_ok=True,
     async def fake_open_client(cfg):
         if opened is not None:
             opened.append(cfg)
+        if open_error is not None:
+            raise RuntimeError(open_error)
         return _FakeClient()
 
     monkeypatch.setattr(run_checks, "notify", fake_notify)
@@ -329,3 +331,34 @@ def test_no_client_is_opened_when_nothing_needs_delivery(monkeypatch, tmp_path):
     assert code == 0
     assert delivered == []
     assert opened == []
+
+
+def test_client_open_failure_is_attempted_once(monkeypatch, tmp_path):
+    opened: list = []
+
+    code, delivered, _alerts, state = _run(
+        monkeypatch, tmp_path, opened=opened, open_error="flood wait",
+    )
+
+    assert code == 1
+    assert delivered == []
+    assert len(opened) == 1
+    assert state["a"]["failures"] == 1
+
+
+def test_zero_matching_assets_fails_before_opening_client(monkeypatch, tmp_path):
+    items = [
+        WatchItem(id="a", repo="o/a", strategy="latest",
+                  notify=NotifyCopy(title="a"), asset_include=".apk"),
+    ]
+    opened: list = []
+
+    code, delivered, _alerts, state = _run(
+        monkeypatch, tmp_path, items=items, opened=opened,
+    )
+
+    assert code == 1
+    assert delivered == []
+    assert opened == []
+    assert state["a"]["failures"] == 1
+    assert "no assets" in state["a"]["last_error"]

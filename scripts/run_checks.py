@@ -29,6 +29,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from detector import Detection, detect
+from github_api import get_matching_assets
 from notifier import TelegramConfig, notify, open_client, send_text
 from state import (
     load_state,
@@ -87,18 +88,14 @@ def _require_env(var: str) -> str:
 
 def _telegram(item: WatchItem, chat_ids: list[int]) -> TelegramConfig:
     copy = item.notify
-    return TelegramConfig(
-        bot_token=_require_env("TG_BOT_TOKEN"),
-        chat_ids=chat_ids,
-        api_id=int(_require_env("TG_API_ID")),
-        api_hash=_require_env("TG_API_HASH"),
-        notify_title=copy.title,
-        notify_group_url=copy.group_url,
-        notify_channel_url=copy.channel_url,
-        notify_project_url=copy.project_url,
-        notify_description=copy.description,
-        notify_tag=copy.tag,
-    )
+    cfg = _credentials(chat_ids)
+    cfg.notify_title = copy.title
+    cfg.notify_group_url = copy.group_url
+    cfg.notify_channel_url = copy.channel_url
+    cfg.notify_project_url = copy.project_url
+    cfg.notify_description = copy.description
+    cfg.notify_tag = copy.tag
+    return cfg
 
 
 def _credentials(chat_ids: list[int]) -> TelegramConfig:
@@ -190,6 +187,7 @@ async def main() -> int:
     failed: list[str] = []
     delivered: list[str] = []
     client = None  # opened lazily, reused for every delivery and alert
+    client_error = ""  # first failure to connect; later items fail fast
 
     for outcome in outcomes:
         item = outcome.item
@@ -219,10 +217,23 @@ async def main() -> int:
               f"({_short(previous)} -> {_short(detection.marker)}), "
               f"assets={detection.asset_count}", flush=True)
 
+        if item.asset_include.strip() and not get_matching_assets(
+                detection.release, item.asset_include, item.asset_exclude):
+            record_failure(state, item.id, now, "no assets matched")
+            failed.append(item.id)
+            row_by_id[item.id] = (item.id, "❌ no assets", item.asset_include)
+            continue
+
         error = "delivery failed"
         try:
+            if client is None and not client_error:
+                try:
+                    client = await open_client(_credentials(chat_ids))
+                except Exception as e:  # one failure must not retry per item
+                    client_error = str(e)
+                    print(f"::error::Telegram client unavailable: {e}")
             if client is None:
-                client = await open_client(_credentials(chat_ids))
+                raise RuntimeError(client_error or "Telegram client unavailable")
             ok = await notify(detection.release, _telegram(item, chat_ids),
                               token, item.asset_include, item.asset_exclude,
                               client=client)
@@ -257,8 +268,14 @@ async def main() -> int:
             text = _alert_text(item, int(entry.get("failures", 0)),
                                str(entry.get("last_error", "")))
             try:
+                if client is None and not client_error:
+                    try:
+                        client = await open_client(_credentials(admin_ids))
+                    except Exception as e:
+                        client_error = str(e)
+                        print(f"::error::Telegram client unavailable: {e}")
                 if client is None:
-                    client = await open_client(_credentials(admin_ids))
+                    raise RuntimeError(client_error or "client unavailable")
                 if await send_text(text, _telegram(item, admin_ids),
                                    client=client):
                     mark_alerted(state, item.id)

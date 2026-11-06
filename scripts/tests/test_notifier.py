@@ -11,6 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from telethon import errors as tg_errors
 
+import notifier
 from notifier import TelegramConfig, _build_message, notify
 
 
@@ -334,3 +335,19 @@ def test_album_splits_more_than_ten_assets_into_batches():
     assert len(calls[0].args[1]) == 10
     # Telegram rejects single-item albums, so the tail is sent as one media.
     assert not isinstance(calls[1].args[1], list)
+
+
+def test_shared_client_is_not_disconnected_when_an_upload_fails(monkeypatch):
+    client = MagicMock()
+    client.disconnect = AsyncMock(return_value=None)
+
+    def _boom(asset, token=""):
+        raise RuntimeError("download failed")
+
+    monkeypatch.setattr(notifier, "stream_asset", _boom)
+
+    ok = asyncio.run(notify(RELEASE_2_ASSETS, _text_cfg(), "", ".apk", "",
+                            client=client))
+
+    assert ok is False
+    client.disconnect.assert_not_awaited()

@@ -224,11 +224,13 @@ async def notify(release_data: dict, cfg: TelegramConfig,
             else:
                 print(f"::error::Only {len(medias)}/{len(matched_assets)} "
                       f"asset(s) uploaded — will retry on next run", flush=True)
-                await client.disconnect()  # type: ignore[misc]
+                if owns_client:
+                    await client.disconnect()  # type: ignore[misc]
                 return False
         except asyncio.TimeoutError:
             print("::error::Asset processing timeout — skipped", flush=True)
-            await client.disconnect()  # type: ignore[misc]
+            if owns_client:
+                await client.disconnect()  # type: ignore[misc]
             return False
     # -------------------------------------------------------------------
 

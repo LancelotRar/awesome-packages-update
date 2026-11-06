@@ -2,7 +2,8 @@
 
 ``latest`` compares the newest stable release's ``updated_at``: drafts and
 prereleases never qualify. When a tag filter is configured, "newest" means
-the newest stable release whose tag matches any pattern. ``tag`` fingerprints a named release's matched assets so
+the newest stable release whose tag matches any pattern. The chosen tag is
+then fetched in full so its asset list is complete. ``tag`` fingerprints a named release's matched assets so
 in-place asset replacement is detected even though the release itself
 never changes.
 """
@@ -90,7 +91,7 @@ def _select_release(item: WatchItem, releases: list[dict]) -> dict:
     if not candidates:
         if patterns:
             raise RuntimeError(
-                f"No release tag in {item.repo} matched: {', '.join(patterns)}"
+                f"No stable release in {item.repo} matched: {', '.join(patterns)}"
             )
         raise RuntimeError(f"No stable release in {item.repo}")
     return max(candidates, key=lambda r: r.get("published_at") or "")
