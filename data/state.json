@@ -1,0 +1,58 @@
+{
+  "ainanplayer": {
+    "alerted": false,
+    "failures": 0,
+    "last_checked": "",
+    "last_error": "",
+    "marker": "2026-11-03T14:33:47Z"
+  },
+  "ant-video": {
+    "alerted": false,
+    "failures": 0,
+    "last_checked": "",
+    "last_error": "",
+    "marker": "2026-09-02T18:19:36Z"
+  },
+  "bettbox": {
+    "alerted": false,
+    "failures": 0,
+    "last_checked": "",
+    "last_error": "",
+    "marker": "2026-10-22T07:16:03Z"
+  },
+  "cmfa": {
+    "alerted": false,
+    "failures": 0,
+    "last_checked": "",
+    "last_error": "",
+    "marker": "2026-10-21T16:44:10Z"
+  },
+  "flclash": {
+    "alerted": false,
+    "failures": 0,
+    "last_checked": "",
+    "last_error": "",
+    "marker": "2026-10-24T06:18:34Z"
+  },
+  "fongmi-module": {
+    "alerted": false,
+    "failures": 0,
+    "last_checked": "",
+    "last_error": "",
+    "marker": "97619b4e5218230d8c380a8db17cddb5490d5f4df53419c452bbda870a58374e"
+  },
+  "fongmitv": {
+    "alerted": false,
+    "failures": 0,
+    "last_checked": "",
+    "last_error": "",
+    "marker": "2026-11-01T18:10:16Z"
+  },
+  "webhtv": {
+    "alerted": false,
+    "failures": 0,
+    "last_checked": "",
+    "last_error": "",
+    "marker": "2026-09-24T05:06:22Z"
+  }
+}

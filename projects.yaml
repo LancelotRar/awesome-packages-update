@@ -1,0 +1,115 @@
+# 监控项清单。新增软件 = 在 projects 下加一条，不用改 workflow。
+#
+# strategy:
+#   latest —— 取仓库最新 Release，以 release.updated_at 作为标记
+#   tag    —— 取指定 tag 的 Release（资产原地滚动更新），
+#             以匹配资产的 (name, size, updated_at) 指纹作为标记
+#
+# asset_include / asset_exclude：逗号=任一匹配(OR)，加号=同时匹配(AND)，
+# exclude 优先；以 "." 开头的 token 按后缀匹配，其余按不区分大小写的子串匹配。
+
+projects:
+  - id: webhtv
+    repo: webhtv/webhtv
+    strategy: latest
+    asset_include: ".apk"
+    asset_exclude: ""
+    notify:
+      title: "鱼大 WebHomeTV 新版本发布！"
+      description: "基于 FongMi/CatVod 生态二次开发的 Android 影音应用"
+      group_url: "https://t.me/webhtv"
+      channel_url: ""
+      project_url: "https://github.com/webhtv/webhtv"
+      tag: "#webhtv"
+
+  - id: fongmi-module
+    repo: FongMi/Release
+    strategy: tag
+    release_tag: module
+    asset_include: ".apk"
+    asset_exclude: "thunder"
+    notify:
+      title: "FongMi 模块更新！"
+      description: "FongMi 各模块独立安装包，安装成功率高，注意查看 Release 日志，匹配 fongmiTV 对应版本"
+      group_url: "https://t.me/fongmi_official"
+      channel_url: "https://t.me/fongmi_release"
+      project_url: "https://github.com/FongMi/Release"
+      tag: "#fongmimodule"
+
+  - id: ainanplayer
+    repo: Ainanya21/AinanPlayer
+    strategy: latest
+    asset_include: ".exe, .zip"
+    asset_exclude: ""
+    notify:
+      title: "AinanPlayer 新版本发布！"
+      description: "现代化 Windows 11 影视聚合与 4K 超清硬件加速播放平台"
+      group_url: "https://t.me/+Hwh-6U4k1kw0YWU1"
+      channel_url: "https://t.me/+JCOHVx4hvsEwYTQ1"
+      project_url: "https://github.com/Ainanya21/AinanPlayer"
+      tag: "#ainanplayer"
+
+  - id: ant-video
+    repo: ant-video/ant-video
+    strategy: latest
+    asset_include: ""
+    asset_exclude: ""
+    notify:
+      title: "蚂蚁影视（ant-video）新版本发布！"
+      description: "跨平台影音娱乐应用，支持 Android、iOS、macOS（空壳）"
+      group_url: ""
+      channel_url: "https://t.me/ant_video"
+      project_url: "https://github.com/ant-video/ant-video"
+      tag: "#ant_video"
+
+  - id: bettbox
+    repo: appshubcc/Bettbox
+    strategy: latest
+    asset_include: ".apk+arm64-v8a, .dmg+arm64, .exe+amd64"
+    asset_exclude: "linux, compatible"
+    notify:
+      title: "Bettbox 新版本发布！"
+      description: "优秀的 mihomo 内核多平台代理工具"
+      group_url: "https://t.me/bettbox_chat"
+      channel_url: "https://t.me/appshub_channel"
+      project_url: "https://github.com/appshubcc/Bettbox"
+      tag: "#bettbox"
+
+  - id: cmfa
+    repo: MetaCubeX/ClashMetaForAndroid
+    strategy: latest
+    asset_include: ".apk+v8a, v7a+.apk"
+    asset_exclude: ""
+    notify:
+      title: "Clash Meta For Android 新版本发布！"
+      description: "Mihomo 官方安卓客户端"
+      group_url: ""
+      channel_url: "https://t.me/clashmeta"
+      project_url: "https://github.com/MetaCubeX/ClashMetaForAndroid"
+      tag: "#cmfa"
+
+  - id: flclash
+    repo: chen08209/FlClash
+    strategy: latest
+    asset_include: "arm64-v8a+.apk, windows+amd64+.zip, macos+arm64+.dmg"
+    asset_exclude: ""
+    notify:
+      title: "Flclash 新版本发布！"
+      description: "基于 Mihomo 的开源多平台代理客户端。"
+      group_url: "https://t.me/+G-veVtwBOl4wODc1"
+      channel_url: "https://t.me/FlClash"
+      project_url: "https://github.com/chen08209/FlClash"
+      tag: "#flclash"
+
+  - id: fongmitv
+    repo: FongMi/Release
+    strategy: latest
+    asset_include: ".apk"
+    asset_exclude: ""
+    notify:
+      title: "FongMi 新版本发布！"
+      description: "强大的安卓平台观影应用（空壳）"
+      group_url: "https://t.me/fongmi_official"
+      channel_url: "https://t.me/fongmi_release"
+      project_url: "https://github.com/FongMi/Release"
+      tag: "#fongmitv"

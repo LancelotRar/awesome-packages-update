@@ -1,0 +1,104 @@
+name: check-releases
+
+# 一个 job 跑完 projects.yaml 里的全部监控项：
+# 检查阶段有界并发，通知阶段逐项串行，单项失败不影响其他项。
+
+on:
+  schedule:
+    - cron: '30 7 * * *'
+      timezone: 'Asia/Shanghai'
+  workflow_dispatch:
+    inputs:
+      project:
+        description: Watch item id from projects.yaml, or "all"
+        type: string
+        default: all
+      force:
+        description: Re-deliver even when the marker is unchanged
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: check-releases
+  cancel-in-progress: false
+
+jobs:
+  check-releases:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      WATCHLIST: projects.yaml
+      STATE_FILE: data/state.json
+      # 跟随触发分支: 定时运行在 main, 分支上手动触发则推回该分支,
+      # 避免试点时绕过评审直接写主分支。
+      BRANCH: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+
+      - name: Cache pip
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/pip
+          key: pip-checkrelease-${{ runner.os }}-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            pip-checkrelease-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Check releases and notify
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN_03BOT }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID_UPDATE_CHANNEL }}
+          TG_API_ID: ${{ secrets.TG_API_ID }}
+          TG_API_HASH: ${{ secrets.TG_API_HASH }}
+          TG_CHAT_ID_ADMIN: ${{ secrets.TG_CHAT_ID_ADMIN }}
+          PROJECT: ${{ inputs.project || 'all' }}
+          FORCE: ${{ inputs.force || '' }}
+        run: python3 run_checks.py
+
+      - name: Persist state
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "${{ env.STATE_FILE }}"
+          git diff --cached --quiet && echo "No changes to commit" && exit 0
+          git commit -m "update release check state [skip ci]"
+          # push 可能被并发工作流抢先更新远端而拒绝(fetch first)。fetch +
+          # rebase + push 合并为同一重试单元: 初始 1 次 + 2 次重试, 间隔
+          # 10s、20s, 每次重试都重新 fetch + rebase(-X theirs, 本 run 最新
+          # 数据优先)再推, 吸收并发更新竞态; rebase 冲突残留每次先 abort,
+          # 避免卡死。
+          retry_push() {
+            local max_attempts=3 delay=10 attempt=1 rc
+            while true; do
+              # 上一轮 rebase 冲突残留会直接导致 "unmerged files" 卡死, 先清理
+              git rebase --abort 2>/dev/null || true
+              # 冲突时以本次 run 最新数据为准(-X theirs 即取待重放的本提交)
+              if git fetch origin "$BRANCH" && git rebase -X theirs "origin/$BRANCH" && git push origin "HEAD:$BRANCH"; then
+                return 0
+              else
+                rc=$?
+                git rebase --abort 2>/dev/null || true
+              fi
+              if (( attempt >= max_attempts )); then
+                echo "::error::pull --rebase && push failed after ${max_attempts} attempts" >&2
+                return "$rc"
+              fi
+              echo "Pull/push failed (attempt ${attempt}/${max_attempts}), retrying in ${delay}s..." >&2
+              sleep "$delay"
+              attempt=$((attempt + 1))
+              delay=$((delay * 2))
+            done
+          }
+          retry_push

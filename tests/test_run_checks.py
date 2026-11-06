@@ -1,0 +1,173 @@
+"""Unit tests for ``run_checks`` — one job, many watch items."""
+
+import asyncio
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+import run_checks
+from detector import Detection
+from state import load_state, save_state
+from watchlist import NotifyCopy, WatchItem
+
+
+def _items():
+    return [
+        WatchItem(id="a", repo="o/a", strategy="latest",
+                  notify=NotifyCopy(title="a")),
+        WatchItem(id="b", repo="o/b", strategy="latest",
+                  notify=NotifyCopy(title="b")),
+    ]
+
+
+def _detection(marker: str) -> Detection:
+    return Detection(
+        release={
+            "name": "v2",
+            "tag_name": "v2",
+            "published_at": "2026-01-01T00:00:00Z",
+            "html_url": "https://example.com/releases/v2",
+            "assets": [],
+        },
+        marker=marker,
+        asset_count=0,
+    )
+
+
+def _run(monkeypatch, tmp_path, *, markers=None, notify_ok=True,
+         items=None, project=None, force=False, admin=None):
+    items = items or _items()
+    markers = markers or {}
+
+    monkeypatch.setenv("TG_CHAT_ID", "111")
+    monkeypatch.setenv("TG_BOT_TOKEN", "TOK")
+    monkeypatch.setenv("TG_API_ID", "1")
+    monkeypatch.setenv("TG_API_HASH", "H")
+    monkeypatch.delenv("GITHUB_STEP_SUMMARY", raising=False)
+    monkeypatch.setenv("STATE_FILE", str(tmp_path / "state.json"))
+    monkeypatch.setattr(run_checks, "load_watchlist", lambda path: items)
+
+    if project is None:
+        monkeypatch.delenv("PROJECT", raising=False)
+    else:
+        monkeypatch.setenv("PROJECT", project)
+    if force:
+        monkeypatch.setenv("FORCE", "true")
+    else:
+        monkeypatch.delenv("FORCE", raising=False)
+    if admin is None:
+        monkeypatch.delenv("TG_CHAT_ID_ADMIN", raising=False)
+    else:
+        monkeypatch.setenv("TG_CHAT_ID_ADMIN", admin)
+
+    def fake_detect(item, token):
+        outcome = markers.get(item.id, _detection("m2"))
+        if isinstance(outcome, Exception):
+            raise outcome
+        return outcome
+
+    monkeypatch.setattr(run_checks, "detect", fake_detect)
+
+    delivered: list[str] = []
+    alerts: list[str] = []
+
+    async def fake_notify(release, cfg, token, include, exclude):
+        delivered.append(cfg.notify_title)
+        return notify_ok
+
+    async def fake_send_text(text, cfg):
+        alerts.append(text)
+        return True
+
+    monkeypatch.setattr(run_checks, "notify", fake_notify)
+    monkeypatch.setattr(run_checks, "send_text", fake_send_text)
+
+    code = asyncio.run(run_checks.main())
+    return code, delivered, alerts, load_state(tmp_path / "state.json")
+
+
+def test_delivers_each_item_and_persists_marker(monkeypatch, tmp_path):
+    code, delivered, _alerts, state = _run(monkeypatch, tmp_path)
+
+    assert code == 0
+    assert delivered == ["a", "b"]
+    assert state["a"]["marker"] == "m2"
+    assert state["a"]["failures"] == 0
+
+
+def test_unchanged_marker_skips_delivery(monkeypatch, tmp_path):
+    save_state(tmp_path / "state.json", {
+        "a": {"marker": "m2"},
+        "b": {"marker": "m2"},
+    })
+
+    code, delivered, _alerts, state = _run(monkeypatch, tmp_path)
+
+    assert code == 0
+    assert delivered == []
+    assert state["a"]["last_checked"]
+
+
+def test_failed_delivery_keeps_marker_and_counts(monkeypatch, tmp_path):
+    code, delivered, _alerts, state = _run(
+        monkeypatch, tmp_path, notify_ok=False,
+    )
+
+    assert code == 1
+    assert len(delivered) == 2
+    assert state["a"]["marker"] == ""
+    assert state["a"]["failures"] == 1
+
+
+def test_one_detection_failure_does_not_block_the_other(monkeypatch, tmp_path):
+    code, delivered, _alerts, state = _run(
+        monkeypatch, tmp_path,
+        markers={"a": _detection("m2"), "b": RuntimeError("api down")},
+    )
+
+    assert code == 1
+    assert delivered == ["a"]
+    assert state["a"]["marker"] == "m2"
+    assert state["b"]["failures"] == 1
+    assert "api down" in state["b"]["last_error"]
+
+
+def test_force_delivers_even_when_marker_matches(monkeypatch, tmp_path):
+    save_state(tmp_path / "state.json", {"a": {"marker": "m2"},
+                                         "b": {"marker": "m2"}})
+
+    code, delivered, _alerts, _state = _run(
+        monkeypatch, tmp_path, force=True,
+    )
+
+    assert code == 0
+    assert delivered == ["a", "b"]
+
+
+def test_unknown_project_fails_without_delivery(monkeypatch, tmp_path):
+    code, delivered, _alerts, _state = _run(
+        monkeypatch, tmp_path, project="nope",
+    )
+
+    assert code == 1
+    assert delivered == []
+
+
+def test_alert_after_three_consecutive_failures(monkeypatch, tmp_path):
+    save_state(tmp_path / "state.json", {
+        "a": {"marker": "", "failures": 2},
+        "b": {"marker": "m2"},
+    })
+
+    code, _delivered, alerts, state = _run(
+        monkeypatch, tmp_path,
+        markers={"a": RuntimeError("still down")},
+        admin="999",
+    )
+
+    assert code == 1
+    assert len(alerts) == 1
+    assert "a" in alerts[0]
+    assert state["a"]["failures"] == 3
+    assert state["a"]["alerted"] is True
