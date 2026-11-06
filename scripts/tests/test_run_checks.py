@@ -43,7 +43,8 @@ def _clear_env(monkeypatch):
 
 
 def _run(monkeypatch, tmp_path, *, markers=None, notify_ok=True,
-         items=None, project=None, force=False, admin=None):
+         items=None, project=None, force=False, admin=None,
+         detected=None, summary=None):
     items = items or _items()
     markers = markers or {}
 
@@ -53,6 +54,8 @@ def _run(monkeypatch, tmp_path, *, markers=None, notify_ok=True,
     monkeypatch.setenv("TG_API_ID", "1")
     monkeypatch.setenv("TG_API_HASH", "H")
     monkeypatch.setenv("STATE_FILE", str(tmp_path / "state.json"))
+    if summary is not None:
+        monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
     monkeypatch.setattr(run_checks, "load_watchlist", lambda path: items)
 
     if project is not None:
@@ -63,6 +66,8 @@ def _run(monkeypatch, tmp_path, *, markers=None, notify_ok=True,
         monkeypatch.setenv("TG_CHAT_ID_ADMIN", admin)
 
     def fake_detect(item, token):
+        if detected is not None:
+            detected.append(item.id)
         outcome = markers.get(item.id, _detection("m2"))
         if isinstance(outcome, Exception):
             raise outcome
@@ -212,3 +217,53 @@ def test_default_state_file_resolves_to_repository_root(monkeypatch):
 
     repo_root = Path(run_checks.__file__).resolve().parent.parent
     assert state == repo_root / "data" / "state.json"
+
+
+def _disabled_items():
+    return [
+        WatchItem(id="a", repo="o/a", strategy="latest",
+                  notify=NotifyCopy(title="a"), enabled=False),
+        WatchItem(id="b", repo="o/b", strategy="latest",
+                  notify=NotifyCopy(title="b")),
+    ]
+
+
+def test_disabled_item_is_not_detected_or_delivered(monkeypatch, tmp_path):
+    detected: list[str] = []
+
+    code, delivered, _alerts, state = _run(
+        monkeypatch, tmp_path, items=_disabled_items(), detected=detected,
+    )
+
+    assert code == 0
+    assert detected == ["b"]
+    assert delivered == ["b"]
+    assert "a" not in state
+
+
+def test_selecting_a_disabled_item_fails(monkeypatch, tmp_path):
+    code, delivered, _alerts, state = _run(
+        monkeypatch, tmp_path, items=_disabled_items(), project="a",
+    )
+
+    assert code == 1
+    assert delivered == []
+    assert "a" not in state
+
+
+def test_force_does_not_reenable_a_disabled_item(monkeypatch, tmp_path):
+    _code, delivered, _alerts, _state = _run(
+        monkeypatch, tmp_path, items=_disabled_items(), force=True,
+    )
+
+    assert delivered == ["b"]
+
+
+def test_disabled_item_appears_in_summary(monkeypatch, tmp_path):
+    summary = tmp_path / "summary.md"
+
+    _run(monkeypatch, tmp_path, items=_disabled_items(), summary=summary)
+
+    text = summary.read_text(encoding="utf-8")
+    assert "| a |" in text
+    assert "disabled" in text

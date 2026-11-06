@@ -31,5 +31,9 @@ Sending one watch item's notification, with its files, to the channel.
 A watch item's marker is recorded only after its delivery succeeds.
 _Avoid_: notification, message, push
 
+**Disabled watch item**:
+A watch item whose tracking is switched off. It is neither checked nor delivered, and its marker and failure counters stay frozen until it is enabled again.
+_Avoid_: paused item, muted item, inactive item
+
 **Consecutive failure**:
 One run in which a watch item's detection or delivery failed, counted from its last success.

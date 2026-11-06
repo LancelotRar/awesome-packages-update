@@ -156,6 +156,35 @@ projects:
         load_watchlist(path)
 
 
+def test_enabled_defaults_to_true(tmp_path):
+    path = _write(tmp_path, """
+projects:
+  - {id: x, repo: a/b, strategy: latest}
+""")
+
+    assert load_watchlist(path)[0].enabled is True
+
+
+def test_enabled_false_is_parsed(tmp_path):
+    path = _write(tmp_path, """
+projects:
+  - {id: x, repo: a/b, strategy: latest, enabled: false}
+""")
+
+    assert load_watchlist(path)[0].enabled is False
+
+
+def test_enabled_must_be_boolean(tmp_path):
+    path = _write(tmp_path, """
+projects:
+  - {id: x, repo: a/b, strategy: latest, enabled: "false"}
+""")
+
+    with pytest.raises(RuntimeError,
+                       match="'enabled' must be true or false"):
+        load_watchlist(path)
+
+
 def test_unknown_project_key_rejected(tmp_path):
     path = _write(tmp_path, """
 projects:

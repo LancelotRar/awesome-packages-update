@@ -16,6 +16,7 @@ _PROJECT_KEYS = {
     "id",
     "repo",
     "strategy",
+    "enabled",
     "release_tag",
     "release_tag_include",
     "asset_include",
@@ -57,6 +58,7 @@ class WatchItem:
     release_tag_include: tuple[str, ...] = ()
     asset_include: str = ""
     asset_exclude: str = ""
+    enabled: bool = True
 
 
 def _require_str(entry: dict, key: str, where: str) -> str:
@@ -140,6 +142,10 @@ def _parse_item(raw: object, index: int, seen: set[str]) -> WatchItem:
             f"{where}: 'release_tag_include' is only valid with strategy 'latest'"
         )
 
+    enabled = raw.get("enabled", True)
+    if not isinstance(enabled, bool):
+        raise RuntimeError(f"{where}: 'enabled' must be true or false")
+
     notify_raw = raw.get("notify", {})
     if not isinstance(notify_raw, dict):
         raise RuntimeError(f"{where}: 'notify' must be a mapping")
@@ -162,6 +168,7 @@ def _parse_item(raw: object, index: int, seen: set[str]) -> WatchItem:
         release_tag_include=release_tag_include,
         asset_include=_optional_str(raw, "asset_include", where),
         asset_exclude=_optional_str(raw, "asset_exclude", where),
+        enabled=enabled,
     )
 
 

@@ -108,6 +108,8 @@ def _select(items: list[WatchItem], raw: str) -> list[WatchItem]:
     if not selected:
         known = ", ".join(item.id for item in items)
         raise RuntimeError(f"Unknown project '{raw}'. Known ids: {known}")
+    if not selected[0].enabled:
+        raise RuntimeError(f"Watch item '{raw}' is disabled")
     return selected
 
 
@@ -161,13 +163,17 @@ async def main() -> int:
         print(f"::error::{e}")
         return 1
 
+    active = [item for item in items if item.enabled]
+    skipped = [item for item in items if not item.enabled]
+
     force = os.environ.get("FORCE", "").lower() == "true"
     token = os.environ.get("GITHUB_TOKEN", "")
     chat_ids = _parse_chat_ids(_require_env("TG_CHAT_ID"), "TG_CHAT_ID")
 
-    print(f"Checking {len(items)} watch item(s); force={force}")
+    print(f"Checking {len(active)} watch item(s), skipping {len(skipped)} "
+          f"disabled; force={force}")
 
-    outcomes = await _detect_all(items, token)
+    outcomes = await _detect_all(active, token)
 
     rows: list[tuple[str, str, str]] = []
     failed: list[str] = []
@@ -222,11 +228,13 @@ async def main() -> int:
     # Persist before alerting so a crash during alerts cannot lose markers.
     save_state(state_path, state)
 
+    rows.extend((item.id, "⏭ disabled", "") for item in skipped)
+
     admin_raw = os.environ.get("TG_CHAT_ID_ADMIN", "").strip()
     if admin_raw:
         admin_ids = _parse_chat_ids(admin_raw, "TG_CHAT_ID_ADMIN")
         alerted = False
-        for item in items:
+        for item in active:
             if not needs_alert(state, item.id, FAILURE_ALERT_THRESHOLD):
                 continue
             entry = state[item.id]
@@ -241,15 +249,16 @@ async def main() -> int:
         if alerted:
             save_state(state_path, state)
     else:
-        pending = [i.id for i in items
+        pending = [i.id for i in active
                    if needs_alert(state, i.id, FAILURE_ALERT_THRESHOLD)]
         if pending:
             print("::warning::Failure alerts pending but TG_CHAT_ID_ADMIN "
                   f"is unset: {', '.join(pending)}")
 
     _write_summary(rows)
+    unchanged = len(active) - len(delivered) - len(failed)
     print(f"Done: delivered={len(delivered)} failed={len(failed)} "
-          f"unchanged={len(items) - len(delivered) - len(failed)}")
+          f"unchanged={unchanged} skipped={len(skipped)}")
 
     return 1 if failed else 0
 

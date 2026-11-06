@@ -77,6 +77,8 @@
 
 `id` 只能用小写字母、数字和 `-`，且不可重复。`notify` 下的字段留空时，对应行不会出现在消息里。
 
+`enabled` 可选，默认 `true`。设为 `false` 时该条被完全跳过：不检查、不投递、不写 `state.json`、不参与连续失败告警，运行摘要里显示为 `⏭ disabled`；改回 `true` 后从原来的 marker 继续，不需要重建配置。显式用 `PROJECT=<id>` 指定一个已关闭的条目会报错退出。
+
 `notify.tag` 统一写成 `#` + `id`，并把 `id` 里的 `-` 换成 `_`：Telegram 话题标签只接受字母、数字和下划线，`bitwarden-win` 因此写作 `#bitwarden_win`。
 
 首次接入时建议先按当前版本写入 `data/state.json` 的 `marker`，避免切换后重复推送一次旧版本；或者接受首次运行推送一次当前最新版。
