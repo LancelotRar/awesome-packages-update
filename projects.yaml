@@ -136,7 +136,7 @@ projects:
     repo: bitwarden/android
     strategy: latest
     release_tag_include: ["v*-bwpm"]
-    asset_include: "com.x8bit.bitwarden.apk"
+    asset_include: "com.x8bit.bitwarden+.apk"
     asset_exclude: "-sha256"
     notify:
       title: "bitwarden-android 新版本发布！"
@@ -422,7 +422,7 @@ projects:
   - id: heu-kms-activator
     repo: zbezj/HEU_KMS_Activator
     strategy: latest
-    asset_include: ".exe"
+    asset_include: "HEU+.rar"
     asset_exclude: ""
     notify:
       title: "HEU_KMS_Activator 新版本发布！"
