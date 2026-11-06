@@ -3,7 +3,7 @@
 - 日期：2026-11-06
 - 源：`awesome-actions` 分支 `refactor/check-release-runner`（未提交的工作区改动）
 - 目标：`LancelotRar/awesome-packages-update`（公开仓库）
-- 状态：代码已落盘、单测通过、真实 API 标记核对完成；**未提交、未推送、未配 secrets**
+- 状态：代码已落盘、单测通过、真实 API 标记核对完成；已提交并推送至 `main`，旧仓库的发布监控已停用；**secrets 未配置、尚未实跑**
 
 ---
 
@@ -69,17 +69,19 @@
 
 ## 5. 后续步骤
 
-1. 在新仓库配置 secrets：`TG_BOT_TOKEN_03BOT`、`TG_CHAT_ID_UPDATE_CHANNEL`、`TG_API_ID`、`TG_API_HASH`，可选 `TG_CHAT_ID_ADMIN`。
-2. 手动触发一次 `project=all`（不加 force）：预期 delivered=1（flclash）、unchanged=7、failed=0。
-3. 确认频道收到 flclash 后，把 `awesome-actions` 的 8 个 `check-release-*.yml` 移入 `.github/disabled-workflows/` 并回滚该仓库里未提交的新架构文件，避免两套系统重复推送。
-4. 观察一天，确认定时运行与 `state.json` 回写正常。
+| 步骤 | 状态 | 内容 |
+|---|---|---|
+| 1 | 未完成 | 配置 secrets：`TG_BOT_TOKEN_03BOT`、`TG_CHAT_ID_UPDATE_CHANNEL`、`TG_API_ID`、`TG_API_HASH`，可选 `TG_CHAT_ID_ADMIN`。截至 2026-11-06 `gh secret list` 为空。 |
+| 2 | 未完成 | 手动触发一次 `project=all`（不加 force）：预期 delivered=1（flclash）、unchanged=7、failed=0。 |
+| 3 | 已完成 | 旧仓库的发布监控已停用并移除，不再有第二套系统重复推送。 |
+| 4 | 未完成 | 观察一个自然日，确认定时运行与 `state.json` 回写正常。 |
 
-> 顺序提示：旧 flclash workflow 每 3 天跑一次，下一次运行可能早于新仓库配好 secrets。若要绝对避免重复，先停用旧 workflow 再配新仓库；接受短暂空窗即可。
+> 旧 workflow 已停用，原本“配好 secrets 前旧 workflow 抢先运行”的重复推送窗口不存在了；现在的空窗期是 secrets 配置到首次成功运行之间。`data/state.json` 未被任何运行改写，8 条 marker 仍是移植时写入的值。
 
 ## 6. 风险与待决
 
 1. **公开仓库的内容**：`projects.yaml` 含 Telegram 群组/频道链接，`docs/` 与运行日志公开。不含任何密钥。
-2. **secrets 未配置**：首次运行会因缺少 `TG_BOT_TOKEN` 等直接退出（`run_checks.py` 的 `_require_env` 行为），不会误投递。
+2. **secrets 未配置**（2026-11-06 核对 `gh secret list` 为空）：首次运行会因缺少 `TG_BOT_TOKEN` 等直接退出（`run_checks.py` 的 `_require_env` 行为），不会误投递。
 3. **告警链路**：`send_text` + `TG_CHAT_ID_ADMIN` 只有单测，未实跑过。
-4. **旧脚本退役**：`awesome-actions` 里 3 个 telethon 脚本与 `data/last-release-*.txt` 仍未删，建议等停用 workflow 确定永久废弃后再清理。
+4. **旧脚本退役**：已完成——旧仓库的发布监控脚本与旧标记文件已随该监控一并移除（据维护者告知；本次按约定未再访问该仓库核验）。
 5. **首次补投**：flclash 的 11-04 版本会在首次运行时投递一次，频道里看起来像「延迟的更新」，属预期。
