@@ -7,6 +7,8 @@
 #
 # release_tag_include（可选，仅 strategy: latest）：非空 glob 列表，
 # 只跟随 tag 命中其一的 Release。
+# enabled（可选，默认 true）：false 时完全跳过该条——不检查、不投递、
+# 不写 state、不参与告警；重新启用后从原 marker 继续。
 # asset_include / asset_exclude：逗号=任一匹配(OR)，加号=同时匹配(AND)，
 # exclude 优先；以 "." 开头的 token 按后缀匹配，其余按不区分大小写的子串匹配。
 
@@ -203,7 +205,7 @@ projects:
     asset_exclude: ""
     notify:
       title: "sunshine 新版本发布！"
-      description: "面向 Moonlight 的自托管游戏串流主机"
+      description: "面向 Moonlight 的自托管游戏串流方案"
       group_url: ""
       channel_url: ""
       project_url: "https://github.com/AlkaidLab/foundation-sunshine"
@@ -261,200 +263,44 @@ projects:
       project_url: "https://github.com/jellyfin/jellyfin-androidtv"
       tag: "#jellyfin_androidtv"
 
-  - id: jq-linux
-    repo: jqlang/jq
-    strategy: latest
-    asset_include: "jq-linux-amd64"
-    asset_exclude: ""
-    notify:
-      title: "jq-linux 新版本发布！"
-      description: "命令行 JSON 处理器"
-      group_url: ""
-      channel_url: ""
-      project_url: "https://github.com/jqlang/jq"
-      tag: "#jq_linux"
-
-  - id: 7zzs-linux
-    repo: ip7z/7zip
-    strategy: latest
-    asset_include: "7z+linux-x64.tar.xz"
-    asset_exclude: ""
-    notify:
-      title: "7zzs-linux 新版本发布！"
-      description: "7-Zip 的命令行压缩解压工具"
-      group_url: ""
-      channel_url: ""
-      project_url: "https://github.com/ip7z/7zip"
-      tag: "#7zzs_linux"
-
-  - id: aria2-linux
-    repo: dmesg00/aria2-static-builds
-    strategy: latest
-    asset_include: "aria2+linux-gnu-64bit+build1.tar.bz2"
-    asset_exclude: ""
-    notify:
-      title: "aria2-linux 新版本发布！"
-      description: "aria2 的 Linux 静态编译版本"
-      group_url: ""
-      channel_url: ""
-      project_url: "https://github.com/dmesg00/aria2-static-builds"
-      tag: "#aria2_linux"
-
-  - id: github-cli-linux
-    repo: cli/cli
-    strategy: latest
-    asset_include: "gh+linux_amd64.tar.gz"
-    asset_exclude: ""
-    notify:
-      title: "github-cli-linux 新版本发布！"
-      description: "GitHub 官方命令行工具"
-      group_url: ""
-      channel_url: ""
-      project_url: "https://github.com/cli/cli"
-      tag: "#github_cli_linux"
-
-  - id: github-cli-win
-    repo: cli/cli
-    strategy: latest
-    asset_include: "gh+windows+amd64+.msi"
-    asset_exclude: ""
-    notify:
-      title: "github-cli-win 新版本发布！"
-      description: "GitHub 官方命令行工具"
-      group_url: ""
-      channel_url: ""
-      project_url: "https://github.com/cli/cli"
-      tag: "#github_cli_win"
-
-  - id: git-for-win
-    repo: git-for-windows/git
-    strategy: latest
-    asset_include: "Git+64-bit+.exe"
-    asset_exclude: "Portable"
-    notify:
-      title: "git-for-win 新版本发布！"
-      description: "含 Windows 专用补丁的 Git 官方构建"
-      group_url: ""
-      channel_url: ""
-      project_url: "https://github.com/git-for-windows/git"
-      tag: "#git_for_win"
-
-  - id: ffmpeg-linux
-    repo: BtbN/FFmpeg-Builds
-    strategy: latest
-    asset_include: "ffmpeg-master-latest-linux64-gpl.tar.xz"
-    asset_exclude: ""
-    notify:
-      title: "ffmpeg-linux 新版本发布！"
-      description: "FFmpeg 每日自动构建的 Linux 静态版本"
-      group_url: ""
-      channel_url: ""
-      project_url: "https://github.com/BtbN/FFmpeg-Builds"
-      tag: "#ffmpeg_linux"
-
-  - id: ffmpeg-win64
-    repo: BtbN/FFmpeg-Builds
-    strategy: latest
-    asset_include: "ffmpeg-master-latest-win64-gpl.zip"
-    asset_exclude: ""
-    notify:
-      title: "ffmpeg-win64 新版本发布！"
-      description: "FFmpeg 每日自动构建的 Windows 静态版本"
-      group_url: ""
-      channel_url: ""
-      project_url: "https://github.com/BtbN/FFmpeg-Builds"
-      tag: "#ffmpeg_win64"
-
-  - id: yq-linux
-    repo: mikefarah/yq
-    strategy: latest
-    asset_include: "yq_linux_amd64"
-    asset_exclude: ".gz"
-    notify:
-      title: "yq-linux 新版本发布！"
-      description: "便携的命令行 YAML、JSON 等格式处理器"
-      group_url: ""
-      channel_url: ""
-      project_url: "https://github.com/mikefarah/yq"
-      tag: "#yq_linux"
-
-  - id: curl-linux
-    repo: stunnel/static-curl
-    strategy: latest
-    asset_include: "curl-linux-x86_64-musl+.tar.xz"
-    asset_exclude: ""
-    notify:
-      title: "curl-linux 新版本发布！"
-      description: "包含最新特性的 curl 静态编译版本"
-      group_url: ""
-      channel_url: ""
-      project_url: "https://github.com/stunnel/static-curl"
-      tag: "#curl_linux"
-
-  - id: 64gram
+  - id: 64gram-desktop
     repo: TDesktop-x64/tdesktop
     strategy: latest
     asset_include: "64Gram+x64+.zip"
     asset_exclude: ""
     notify:
-      title: "64gram 新版本发布！"
-      description: "非官方 Telegram Desktop 客户端 64Gram"
+      title: "64gram-desktop 新版本发布！"
+      description: "基于 Telegram Desktop 的第三方桌面客户端"
       group_url: ""
       channel_url: ""
       project_url: "https://github.com/TDesktop-x64/tdesktop"
       tag: "#64gram"
 
-  - id: v2rayn-win
+  - id: v2rayn
     repo: 2dust/v2rayN
     strategy: latest
     asset_include: "v2rayN-windows-64.zip"
     asset_exclude: ".sig"
     notify:
-      title: "v2rayN-win 新版本发布！"
+      title: "v2rayN 新版本发布！"
       description: "支持 Xray 与 sing-box 的 Windows 代理客户端"
       group_url: ""
       channel_url: ""
       project_url: "https://github.com/2dust/v2rayN"
-      tag: "#v2rayn_win"
+      tag: "#v2rayn"
 
-  - id: syncthing-win
+  - id: syncthing
     repo: syncthing/syncthing
     strategy: latest
     asset_include: "syncthing-windows-amd64+.zip"
     asset_exclude: ""
     notify:
-      title: "syncthing-win 新版本发布！"
+      title: "syncthing 新版本发布！"
       description: "开源的点对点文件同步工具"
       group_url: ""
       channel_url: ""
       project_url: "https://github.com/syncthing/syncthing"
-      tag: "#syncthing_win"
-
-  - id: rsync-linux
-    repo: RsyncProject/rsync
-    strategy: latest
-    asset_include: "rsync+.tar.gz"
-    asset_exclude: ".asc"
-    notify:
-      title: "rsync-linux 新版本发布！"
-      description: "快速增量文件传输与备份工具"
-      group_url: ""
-      channel_url: ""
-      project_url: "https://github.com/RsyncProject/rsync"
-      tag: "#rsync_linux"
-
-  - id: rclone-linux
-    repo: rclone/rclone
-    strategy: latest
-    asset_include: "rclone+linux-amd64.zip"
-    asset_exclude: ""
-    notify:
-      title: "rclone-linux 新版本发布！"
-      description: "支持数十种云存储的命令行同步工具"
-      group_url: ""
-      channel_url: ""
-      project_url: "https://github.com/rclone/rclone"
-      tag: "#rclone_linux"
+      tag: "#syncthing"
 
   - id: winhance
     repo: memstechtips/Winhance
@@ -580,7 +426,7 @@ projects:
     asset_exclude: ""
     notify:
       title: "HEU_KMS_Activator 新版本发布！"
-      description: "HEU KMS Activator 激活工具"
+      description: "Windows 激活首选神器"
       group_url: ""
       channel_url: ""
       project_url: "https://github.com/zbezj/HEU_KMS_Activator"
@@ -611,3 +457,18 @@ projects:
       channel_url: ""
       project_url: "https://github.com/localsend/localsend"
       tag: "#localsend"
+
+  - id: nagram-desktop
+    repo: NextAlone/Nagram-Qt
+    strategy: latest
+    asset_include: "macos+.dmg, windows-x64+.zip"
+    asset_exclude: ""
+    notify:
+      title: "Nagram Desktop 新版本发布！"
+      description: "基于 Telegram Desktop 的第三方桌面客户端"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/NextAlone/Nagram-Qt"
+      tag: "#nagram_qt"
+
+      
