@@ -113,3 +113,499 @@ projects:
       channel_url: "https://t.me/fongmi_release"
       project_url: "https://github.com/FongMi/Release"
       tag: "#fongmitv"
+
+  - id: bitwarden-win
+    repo: bitwarden/clients
+    strategy: latest
+    release_tag_include: ["desktop-v*"]
+    asset_include: "bitwarden+portable+.exe, bitwarden+installer+.exe"
+    asset_exclude: "commercial"
+    notify:
+      title: "bitwarden-win 新版本发布！"
+      description: "开源密码管理器的 Windows 桌面客户端"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/bitwarden/clients"
+      tag: "#bitwarden-win"
+
+  - id: bitwarden-android
+    repo: bitwarden/android
+    strategy: latest
+    release_tag_include: ["v*-bwpm"]
+    asset_include: "com.x8bit.bitwarden.apk"
+    asset_exclude: "-sha256"
+    notify:
+      title: "bitwarden-android 新版本发布！"
+      description: "开源密码管理器的 Android 客户端"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/bitwarden/android"
+      tag: "#bitwarden-android"
+
+  - id: bbll
+    repo: swyefun/BBLLV5
+    strategy: latest
+    asset_include: ".apk"
+    asset_exclude: ""
+    notify:
+      title: "bbll 新版本发布！"
+      description: "第三方哔哩哔哩 Android 客户端的修复版本"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/swyefun/BBLLV5"
+      tag: "#bbll"
+
+  - id: gkd
+    repo: gkd-kit/gkd
+    strategy: latest
+    asset_include: ".apk"
+    asset_exclude: ""
+    notify:
+      title: "gkd 新版本发布！"
+      description: "基于无障碍与订阅规则的屏幕点击自动化安卓应用"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/gkd-kit/gkd"
+      tag: "#gkd"
+
+  - id: moonlight
+    repo: qiin2333/moonlight-vplus
+    strategy: latest
+    asset_include: ".apk"
+    asset_exclude: ""
+    notify:
+      title: "moonlight 新版本发布！"
+      description: "把安卓设备变成游戏串流终端的 Moonlight 客户端"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/qiin2333/moonlight-vplus"
+      tag: "#moonlight"
+
+  - id: notepad3
+    repo: rizonesoft/Notepad3
+    strategy: latest
+    asset_include: "x64+.exe"
+    asset_exclude: ""
+    notify:
+      title: "notepad3 新版本发布！"
+      description: "基于 Scintilla 的轻量 Windows 文本编辑器"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/rizonesoft/Notepad3"
+      tag: "#notepad3"
+
+  - id: sunshine
+    repo: AlkaidLab/foundation-sunshine
+    strategy: latest
+    asset_include: "windows+.exe"
+    asset_exclude: ""
+    notify:
+      title: "sunshine 新版本发布！"
+      description: "面向 Moonlight 的自托管游戏串流主机"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/AlkaidLab/foundation-sunshine"
+      tag: "#sunshine"
+
+  - id: tailscale-android
+    repo: tailscale/tailscale-android
+    strategy: latest
+    asset_include: ".apk"
+    asset_exclude: ""
+    notify:
+      title: "tailscale-android 新版本发布！"
+      description: "基于 WireGuard 的 Tailscale 安卓客户端"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/tailscale/tailscale-android"
+      tag: "#tailscale-android"
+
+  - id: handbrake
+    repo: HandBrake/HandBrake
+    strategy: latest
+    asset_include: "HandBrake+x86_64+Win_GUI.zip"
+    asset_exclude: ".sig"
+    notify:
+      title: "HandBrake 新版本发布！"
+      description: "开源跨平台视频转码工具"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/HandBrake/HandBrake"
+      tag: "#handbrake"
+
+  - id: lenovo-legion-toolkit
+    repo: LenovoLegionToolkit-Team/LenovoLegionToolkit
+    strategy: latest
+    asset_include: ".exe"
+    asset_exclude: ""
+    notify:
+      title: "Lenovo Legion Toolkit 新版本发布！"
+      description: "联想拯救者游戏本工具箱，替代 Vantage 与 Legion Zone"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/LenovoLegionToolkit-Team/LenovoLegionToolkit"
+      tag: "#lenovo-legion-toolkit"
+
+  - id: jellyfin-androidtv
+    repo: jellyfin/jellyfin-androidtv
+    strategy: latest
+    asset_include: "jellyfin+androidtv+release+.apk"
+    asset_exclude: ""
+    notify:
+      title: "jellyfin-androidTV 新版本发布！"
+      description: "Jellyfin 媒体服务器的 Android TV 客户端"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/jellyfin/jellyfin-androidtv"
+      tag: "#jellyfin-androidtv"
+
+  - id: jq-linux
+    repo: jqlang/jq
+    strategy: latest
+    asset_include: "jq-linux-amd64"
+    asset_exclude: ""
+    notify:
+      title: "jq-linux 新版本发布！"
+      description: "命令行 JSON 处理器"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/jqlang/jq"
+      tag: "#jq-linux"
+
+  - id: 7zzs-linux
+    repo: ip7z/7zip
+    strategy: latest
+    asset_include: "7z+linux-x64.tar.xz"
+    asset_exclude: ""
+    notify:
+      title: "7zzs-linux 新版本发布！"
+      description: "7-Zip 的命令行压缩解压工具"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/ip7z/7zip"
+      tag: "#7zzs-linux"
+
+  - id: aria2-linux
+    repo: dmesg00/aria2-static-builds
+    strategy: latest
+    asset_include: "aria2+linux-gnu-64bit+build1.tar.bz2"
+    asset_exclude: ""
+    notify:
+      title: "aria2-linux 新版本发布！"
+      description: "aria2 的 Linux 静态编译版本"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/dmesg00/aria2-static-builds"
+      tag: "#aria2-linux"
+
+  - id: github-cli-linux
+    repo: cli/cli
+    strategy: latest
+    asset_include: "gh+linux_amd64.tar.gz"
+    asset_exclude: ""
+    notify:
+      title: "github-cli-linux 新版本发布！"
+      description: "GitHub 官方命令行工具"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/cli/cli"
+      tag: "#github-cli-linux"
+
+  - id: github-cli-win
+    repo: cli/cli
+    strategy: latest
+    asset_include: "gh+windows+amd64+.msi"
+    asset_exclude: ""
+    notify:
+      title: "github-cli-win 新版本发布！"
+      description: "GitHub 官方命令行工具"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/cli/cli"
+      tag: "#github-cli-win"
+
+  - id: git-for-win
+    repo: git-for-windows/git
+    strategy: latest
+    asset_include: "Git+64-bit+.exe"
+    asset_exclude: "Portable"
+    notify:
+      title: "git-for-win 新版本发布！"
+      description: "含 Windows 专用补丁的 Git 官方构建"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/git-for-windows/git"
+      tag: "#git-for-win"
+
+  - id: ffmpeg-linux
+    repo: BtbN/FFmpeg-Builds
+    strategy: latest
+    asset_include: "ffmpeg-master-latest-linux64-gpl.tar.xz"
+    asset_exclude: ""
+    notify:
+      title: "ffmpeg-linux 新版本发布！"
+      description: "FFmpeg 每日自动构建的 Linux 静态版本"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/BtbN/FFmpeg-Builds"
+      tag: "#ffmpeg-linux"
+
+  - id: ffmpeg-win64
+    repo: BtbN/FFmpeg-Builds
+    strategy: latest
+    asset_include: "ffmpeg-master-latest-win64-gpl.zip"
+    asset_exclude: ""
+    notify:
+      title: "ffmpeg-win64 新版本发布！"
+      description: "FFmpeg 每日自动构建的 Windows 静态版本"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/BtbN/FFmpeg-Builds"
+      tag: "#ffmpeg-win64"
+
+  - id: yq-linux
+    repo: mikefarah/yq
+    strategy: latest
+    asset_include: "yq_linux_amd64"
+    asset_exclude: ".gz"
+    notify:
+      title: "yq-linux 新版本发布！"
+      description: "便携的命令行 YAML、JSON 等格式处理器"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/mikefarah/yq"
+      tag: "#yq-linux"
+
+  - id: curl-linux
+    repo: stunnel/static-curl
+    strategy: latest
+    asset_include: "curl-linux-x86_64-musl+.tar.xz"
+    asset_exclude: ""
+    notify:
+      title: "curl-linux 新版本发布！"
+      description: "包含最新特性的 curl 静态编译版本"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/stunnel/static-curl"
+      tag: "#curl-linux"
+
+  - id: 64gram
+    repo: TDesktop-x64/tdesktop
+    strategy: latest
+    asset_include: "64Gram+x64+.zip"
+    asset_exclude: ""
+    notify:
+      title: "64gram 新版本发布！"
+      description: "非官方 Telegram Desktop 客户端 64Gram"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/TDesktop-x64/tdesktop"
+      tag: "#64gram"
+
+  - id: v2rayn-win
+    repo: 2dust/v2rayN
+    strategy: latest
+    asset_include: "v2rayN-windows-64.zip"
+    asset_exclude: ".sig"
+    notify:
+      title: "v2rayN-win 新版本发布！"
+      description: "支持 Xray 与 sing-box 的 Windows 代理客户端"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/2dust/v2rayN"
+      tag: "#v2rayn-win"
+
+  - id: syncthing-win
+    repo: syncthing/syncthing
+    strategy: latest
+    asset_include: "syncthing-windows-amd64+.zip"
+    asset_exclude: ""
+    notify:
+      title: "syncthing-win 新版本发布！"
+      description: "开源的点对点文件同步工具"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/syncthing/syncthing"
+      tag: "#syncthing-win"
+
+  - id: rsync-linux
+    repo: RsyncProject/rsync
+    strategy: latest
+    asset_include: "rsync+.tar.gz"
+    asset_exclude: ".asc"
+    notify:
+      title: "rsync-linux 新版本发布！"
+      description: "快速增量文件传输与备份工具"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/RsyncProject/rsync"
+      tag: "#rsync-linux"
+
+  - id: rclone-linux
+    repo: rclone/rclone
+    strategy: latest
+    asset_include: "rclone+linux-amd64.zip"
+    asset_exclude: ""
+    notify:
+      title: "rclone-linux 新版本发布！"
+      description: "支持数十种云存储的命令行同步工具"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/rclone/rclone"
+      tag: "#rclone-linux"
+
+  - id: winhance
+    repo: memstechtips/Winhance
+    strategy: latest
+    asset_include: ".exe"
+    asset_exclude: ""
+    notify:
+      title: "Winhance 新版本发布！"
+      description: "优化、定制与增强 Windows 体验的工具"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/memstechtips/Winhance"
+      tag: "#winhance"
+
+  - id: winutil
+    repo: ChrisTitusTech/winutil
+    strategy: latest
+    asset_include: "winutil.ps1"
+    asset_exclude: ""
+    notify:
+      title: "winutil 新版本发布！"
+      description: "安装软件、调整与修复 Windows 的 PowerShell 工具"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/ChrisTitusTech/winutil"
+      tag: "#winutil"
+
+  - id: defender-remover
+    repo: ionuttbara/windows-defender-remover
+    strategy: latest
+    asset_include: ".exe"
+    asset_exclude: ""
+    notify:
+      title: "defender remover 新版本发布！"
+      description: "用于移除 Windows Defender 的工具"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/ionuttbara/windows-defender-remover"
+      tag: "#defender-remover"
+
+  - id: clash-verge-rev
+    repo: clash-verge-rev/clash-verge-rev
+    strategy: latest
+    asset_include: "Clash.Verge+x64-setup.exe"
+    asset_exclude: ".sig"
+    notify:
+      title: "Clash Verge Rev 新版本发布！"
+      description: "基于 Tauri 的现代化跨平台代理图形客户端"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/clash-verge-rev/clash-verge-rev"
+      tag: "#clash-verge-rev"
+
+  - id: powertoys
+    repo: microsoft/PowerToys
+    strategy: latest
+    asset_include: "PowerToysSetup+x64+.exe"
+    asset_exclude: ""
+    notify:
+      title: "powertoys 新版本发布！"
+      description: "微软出品的 Windows 效率工具合集"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/microsoft/PowerToys"
+      tag: "#powertoys"
+
+  - id: powershell
+    repo: PowerShell/PowerShell
+    strategy: latest
+    asset_include: "PowerShell+win-x64+.msi"
+    asset_exclude: ""
+    notify:
+      title: "powershell 新版本发布！"
+      description: "跨平台的开源命令行与脚本环境"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/PowerShell/PowerShell"
+      tag: "#powershell"
+
+  - id: windows-terminal
+    repo: microsoft/terminal
+    strategy: latest
+    asset_include: "Microsoft.WindowsTerminal+x64.zip"
+    asset_exclude: ""
+    notify:
+      title: "Windows Terminal 新版本发布！"
+      description: "Windows 终端与原始控制台主机"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/microsoft/terminal"
+      tag: "#windows-terminal"
+
+  - id: stranslate
+    repo: STranslate/STranslate
+    strategy: latest
+    asset_include: "STranslate+win-Portable+.zip"
+    asset_exclude: ""
+    notify:
+      title: "STranslate 新版本发布！"
+      description: "WPF 开发的即用即走翻译与 OCR 工具"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/STranslate/STranslate"
+      tag: "#stranslate"
+
+  - id: 3fui
+    repo: Lake1059/FFmpegFreeUI
+    strategy: latest
+    asset_include: "FFmpegFreeUI.x64.exe"
+    asset_exclude: ""
+    notify:
+      title: "3FUI 新版本发布！"
+      description: "面向国内用户的 FFmpeg Windows 图形界面"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/Lake1059/FFmpegFreeUI"
+      tag: "#3fui"
+
+  - id: heu-kms-activator
+    repo: zbezj/HEU_KMS_Activator
+    strategy: latest
+    asset_include: ".exe"
+    asset_exclude: ""
+    notify:
+      title: "HEU_KMS_Activator 新版本发布！"
+      description: "HEU KMS Activator 激活工具"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/zbezj/HEU_KMS_Activator"
+      tag: "#heu-kms-activator"
+
+  - id: tubatools
+    repo: luolangaga/tubatools
+    strategy: latest
+    asset_include: "TubaWinUi3+Portable+x64+.zip"
+    asset_exclude: ".exe"
+    notify:
+      title: "TUBAtools 新版本发布！"
+      description: "基于 WinUI 3 重构的图吧工具箱"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/luolangaga/tubatools"
+      tag: "#tubatools"
+
+  - id: localsend
+    repo: localsend/localsend
+    strategy: latest
+    asset_include: "LocalSend+android+arm64v8+.apk, LocalSend+windows+x86-64.zip"
+    asset_exclude: ""
+    notify:
+      title: "localsend 新版本发布！"
+      description: "开源跨平台的局域网文件互传工具"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/localsend/localsend"
+      tag: "#localsend"
