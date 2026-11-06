@@ -47,12 +47,12 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/pip
-          key: pip-checkrelease-${{ runner.os }}-${{ hashFiles('requirements.txt') }}
+          key: pip-checkrelease-${{ runner.os }}-${{ hashFiles('scripts/requirements.txt') }}
           restore-keys: |
             pip-checkrelease-${{ runner.os }}-
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r scripts/requirements.txt
 
       - name: Check releases and notify
         env:
@@ -64,7 +64,7 @@ jobs:
           TG_CHAT_ID_ADMIN: ${{ secrets.TG_CHAT_ID_ADMIN }}
           PROJECT: ${{ inputs.project || 'all' }}
           FORCE: ${{ inputs.force || '' }}
-        run: python3 run_checks.py
+        run: python3 scripts/run_checks.py
 
       - name: Persist state
         if: always()

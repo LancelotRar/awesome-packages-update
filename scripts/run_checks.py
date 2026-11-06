@@ -9,8 +9,8 @@ Environment variables
 ---------------------
 PROJECT             Watch item id, or "all" (default)
 FORCE               "true" re-delivers even when the marker is unchanged
-WATCHLIST           Path to projects.yaml (default: next to this script)
-STATE_FILE          Path to state.json (default: data/state.json here)
+WATCHLIST           Path to projects.yaml (default: repository root)
+STATE_FILE          Path to state.json (default: data/state.json at the repository root)
 GITHUB_TOKEN        GitHub API token (optional, raises rate limits)
 TG_BOT_TOKEN        Telegram bot token (from @BotFather)
 TG_CHAT_ID          Target chat ID(s), comma-separated (numeric only)
@@ -150,8 +150,8 @@ def _alert_text(item: WatchItem, failures: int, last_error: str) -> str:
 
 
 async def main() -> int:
-    watchlist_path = Path(os.environ.get("WATCHLIST") or _HERE / "projects.yaml")
-    state_path = Path(os.environ.get("STATE_FILE") or _HERE / "data" / "state.json")
+    watchlist_path = Path(os.environ.get("WATCHLIST") or _HERE.parent / "projects.yaml")
+    state_path = Path(os.environ.get("STATE_FILE") or _HERE.parent / "data" / "state.json")
 
     try:
         items = _select(load_watchlist(watchlist_path), 

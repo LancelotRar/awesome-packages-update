@@ -28,6 +28,8 @@
 | `GLOSSARY.md` | 同名 |
 | `docs/adr/0001`、`0002` | 同名（原文保留，作为历史记录） |
 
+> 2026-11-06 后续整理：六个模块与单测随后统一移入 `scripts/`，`projects.yaml`、`data/` 仍在仓库根。上表的根目录路径描述的是移植当天的状态。
+
 **未移植**：
 
 - `check_release_telethon.py`、`check_release_module_telethon.py`、`check_release_in_repo_telethon.py`、`persist.py` 及其测试——这些是旧版逐项目 workflow 的脚本，只服务于 `awesome-actions` 里已停用的 workflow。

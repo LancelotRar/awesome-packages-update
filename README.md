@@ -66,13 +66,13 @@
 ## 本地运行
 
 ```bash
-pip install -r requirements.txt
+pip install -r scripts/requirements.txt
 
 # 只检查，不投递
-PROJECT=all python run_checks.py
+PROJECT=all python scripts/run_checks.py
 
 # 单测
-python -m pytest tests -q
+python -m pytest scripts/tests -q
 ```
 
 本地运行同样需要 `TG_BOT_TOKEN` / `TG_CHAT_ID` / `TG_API_ID` / `TG_API_HASH`；仅做检测时可以只设 `GITHUB_TOKEN`（可选）。
@@ -82,14 +82,15 @@ python -m pytest tests -q
 ```
 .github/workflows/check-releases.yml   唯一入口
 projects.yaml                          监控清单
-run_checks.py                          主流程
-watchlist.py                           清单加载与校验
-detector.py                            latest / tag 检测
-state.py                               data/state.json 原子读写
-github_api.py                          GitHub API 客户端
-notifier.py                            Telegram 投递
 data/state.json                        持久化标记
-tests/                                 单元测试
+scripts/run_checks.py                  主流程
+scripts/watchlist.py                   清单加载与校验
+scripts/detector.py                    latest / tag 检测
+scripts/state.py                       data/state.json 原子读写
+scripts/github_api.py                  GitHub API 客户端
+scripts/notifier.py                    Telegram 投递
+scripts/tests/                         单元测试
 docs/adr/                              架构决策记录
+docs/agents/                           agent skill 约定
 docs/progress/                         实施记录
 ```
