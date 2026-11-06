@@ -160,6 +160,20 @@ def fetch_latest_release(repo: str, token: str = "") -> dict | None:
     return releases[0]
 
 
+def fetch_releases(repo: str, token: str = "") -> list[dict]:
+    """Fetch the release list of *repo*, newest first.
+
+    Returns an empty list when the repository has no releases. Used by the
+    ``latest`` strategy when a tag filter has to pick a release instead of
+    accepting whatever the feed advertises first.
+    """
+    url = f"{_GITHUB_API}/repos/{repo}/releases?per_page=100"
+    releases = _get_json(url, token, what="releases")
+    if not isinstance(releases, list):
+        raise RuntimeError("Failed to fetch releases: expected a JSON array")
+    return releases
+
+
 def fetch_release_by_tag(repo: str, tag: str, token: str = "") -> dict | None:
     """Fetch the release identified by *tag*, or *None* when absent.
 

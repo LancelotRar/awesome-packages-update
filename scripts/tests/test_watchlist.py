@@ -83,6 +83,64 @@ projects:
         load_watchlist(path)
 
 
+def test_release_tag_include_parsed_on_latest(tmp_path):
+    path = _write(tmp_path, """
+projects:
+  - id: bitwarden-desktop
+    repo: bitwarden/clients
+    strategy: latest
+    release_tag_include: ["desktop-*", "*-desktop"]
+""")
+
+    items = load_watchlist(path)
+
+    assert items[0].release_tag_include == ("desktop-*", "*-desktop")
+
+
+def test_release_tag_include_defaults_to_empty(tmp_path):
+    path = _write(tmp_path, """
+projects:
+  - {id: x, repo: a/b, strategy: latest}
+""")
+
+    assert load_watchlist(path)[0].release_tag_include == ()
+
+
+def test_release_tag_include_rejected_on_tag_strategy(tmp_path):
+    path = _write(tmp_path, """
+projects:
+  - id: x
+    repo: a/b
+    strategy: tag
+    release_tag: module
+    release_tag_include: ["desktop-*"]
+""")
+
+    with pytest.raises(RuntimeError,
+                       match="'release_tag_include' is only valid with strategy 'latest'"):
+        load_watchlist(path)
+
+
+def test_release_tag_include_must_be_a_list(tmp_path):
+    path = _write(tmp_path, """
+projects:
+  - {id: x, repo: a/b, strategy: latest, release_tag_include: "desktop-*"}
+""")
+
+    with pytest.raises(RuntimeError, match="'release_tag_include' must be a list"):
+        load_watchlist(path)
+
+
+def test_release_tag_include_rejects_non_string_entries(tmp_path):
+    path = _write(tmp_path, """
+projects:
+  - {id: x, repo: a/b, strategy: latest, release_tag_include: ["desktop-*", 1]}
+""")
+
+    with pytest.raises(RuntimeError, match="'release_tag_include' must be a list"):
+        load_watchlist(path)
+
+
 def test_unknown_project_key_rejected(tmp_path):
     path = _write(tmp_path, """
 projects:

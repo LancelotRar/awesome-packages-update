@@ -17,6 +17,7 @@ _PROJECT_KEYS = {
     "repo",
     "strategy",
     "release_tag",
+    "release_tag_include",
     "asset_include",
     "asset_exclude",
     "notify",
@@ -53,6 +54,7 @@ class WatchItem:
     strategy: str
     notify: NotifyCopy = field(default_factory=NotifyCopy)
     release_tag: str = ""
+    release_tag_include: tuple[str, ...] = ()
     asset_include: str = ""
     asset_exclude: str = ""
 
@@ -71,6 +73,19 @@ def _optional_str(entry: dict, key: str, where: str) -> str:
     if not isinstance(value, str):
         raise RuntimeError(f"{where}: '{key}' must be a string")
     return value.strip()
+
+
+def _optional_str_list(entry: dict, key: str, where: str) -> tuple[str, ...]:
+    """Parse an optional list of non-empty strings into a tuple."""
+    value = entry.get(key)
+    if value is None:
+        return ()
+    if not isinstance(value, list):
+        raise RuntimeError(f"{where}: '{key}' must be a list of non-empty strings")
+    patterns = tuple(p.strip() if isinstance(p, str) else "" for p in value)
+    if not all(patterns):
+        raise RuntimeError(f"{where}: '{key}' must be a list of non-empty strings")
+    return patterns
 
 
 def _parse_item(raw: object, index: int, seen: set[str]) -> WatchItem:
@@ -107,6 +122,12 @@ def _parse_item(raw: object, index: int, seen: set[str]) -> WatchItem:
     if strategy == STRATEGY_LATEST and release_tag:
         raise RuntimeError(f"{where}: 'release_tag' is only valid with strategy 'tag'")
 
+    release_tag_include = _optional_str_list(raw, "release_tag_include", where)
+    if strategy == STRATEGY_TAG and release_tag_include:
+        raise RuntimeError(
+            f"{where}: 'release_tag_include' is only valid with strategy 'latest'"
+        )
+
     notify_raw = raw.get("notify", {})
     if not isinstance(notify_raw, dict):
         raise RuntimeError(f"{where}: 'notify' must be a mapping")
@@ -126,6 +147,7 @@ def _parse_item(raw: object, index: int, seen: set[str]) -> WatchItem:
         strategy=strategy,
         notify=notify,
         release_tag=release_tag,
+        release_tag_include=release_tag_include,
         asset_include=_optional_str(raw, "asset_include", where),
         asset_exclude=_optional_str(raw, "asset_exclude", where),
     )
