@@ -116,8 +116,21 @@ projects:
     release_tag_include: ["desktop-*"]
 """)
 
+    with pytest.raises(
+        RuntimeError,
+        match="'release_tag_include' is only valid with strategy 'latest'",
+    ):
+        load_watchlist(path)
+
+
+def test_release_tag_include_rejects_explicit_empty_list(tmp_path):
+    path = _write(tmp_path, """
+projects:
+  - {id: x, repo: a/b, strategy: latest, release_tag_include: []}
+""")
+
     with pytest.raises(RuntimeError,
-                       match="'release_tag_include' is only valid with strategy 'latest'"):
+                       match="'release_tag_include' must not be an empty list"):
         load_watchlist(path)
 
 
@@ -127,7 +140,8 @@ projects:
   - {id: x, repo: a/b, strategy: latest, release_tag_include: "desktop-*"}
 """)
 
-    with pytest.raises(RuntimeError, match="'release_tag_include' must be a list"):
+    with pytest.raises(RuntimeError,
+                       match="'release_tag_include' must be a list"):
         load_watchlist(path)
 
 
@@ -137,7 +151,8 @@ projects:
   - {id: x, repo: a/b, strategy: latest, release_tag_include: ["desktop-*", 1]}
 """)
 
-    with pytest.raises(RuntimeError, match="'release_tag_include' must be a list"):
+    with pytest.raises(RuntimeError,
+                       match="'release_tag_include' entries must be non-empty"):
         load_watchlist(path)
 
 

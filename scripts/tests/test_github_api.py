@@ -169,3 +169,32 @@ def test_get_json_invalid_json_raises(monkeypatch):
 def test_fetch_latest_release_empty_returns_none(monkeypatch):
     _install(monkeypatch, _Resp(b"[]"))
     assert github_api.fetch_latest_release("foo/bar") is None
+
+
+# --- release list --------------------------------------------------------
+
+def test_fetch_releases_requests_one_full_page(monkeypatch):
+    urls: list[str] = []
+
+    def fake_urlopen(req, timeout=None):
+        urls.append(req.full_url)
+        return _Resp(b"[]")
+
+    monkeypatch.setattr(github_api.urllib.request, "urlopen", fake_urlopen)
+    assert github_api.fetch_releases("foo/bar") == []
+    assert urls == ["https://api.github.com/repos/foo/bar/releases?per_page=100"]
+
+
+def test_fetch_releases_returns_json_array_as_is(monkeypatch):
+    payload = b'[{"tag_name": "desktop-v1"}, {"tag_name": "cli-v1"}]'
+    _install(monkeypatch, _Resp(payload))
+    assert github_api.fetch_releases("foo/bar") == [
+        {"tag_name": "desktop-v1"},
+        {"tag_name": "cli-v1"},
+    ]
+
+
+def test_fetch_releases_rejects_non_array_payload(monkeypatch):
+    _install(monkeypatch, _Resp(b'{"message": "Not Found"}'))
+    with pytest.raises(RuntimeError, match="expected a JSON array"):
+        github_api.fetch_releases("foo/bar")

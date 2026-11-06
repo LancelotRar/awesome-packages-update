@@ -10,7 +10,7 @@ _Avoid_: target, entry, job, monitor
 
 **Detection strategy**:
 The rule that decides when a watch item counts as updated.
-`latest` follows the release feed's most recent entry; `tag` follows one named release whose files are replaced in place.
+`latest` follows the newest release — or, when a Tag filter is set, the newest release whose tag matches it; `tag` follows one named release whose files are replaced in place.
 _Avoid_: checker, watcher type
 
 **Tag filter**:

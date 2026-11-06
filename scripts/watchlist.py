@@ -76,16 +76,28 @@ def _optional_str(entry: dict, key: str, where: str) -> str:
 
 
 def _optional_str_list(entry: dict, key: str, where: str) -> tuple[str, ...]:
-    """Parse an optional list of non-empty strings into a tuple."""
+    """Parse an optional non-empty list of non-empty strings into a tuple.
+
+    A missing (or null) key yields an empty tuple, meaning "not
+    configured". An explicitly provided empty list is rejected: the
+    field's contract is a non-empty list, so ``[]`` is a mistake rather
+    than a way to spell "unconfigured".
+    """
     value = entry.get(key)
     if value is None:
         return ()
     if not isinstance(value, list):
         raise RuntimeError(f"{where}: '{key}' must be a list of non-empty strings")
-    patterns = tuple(p.strip() if isinstance(p, str) else "" for p in value)
-    if not all(patterns):
-        raise RuntimeError(f"{where}: '{key}' must be a list of non-empty strings")
-    return patterns
+    if not value:
+        raise RuntimeError(f"{where}: '{key}' must not be an empty list")
+    patterns: list[str] = []
+    for pattern in value:
+        if not isinstance(pattern, str) or not pattern.strip():
+            raise RuntimeError(
+                f"{where}: '{key}' entries must be non-empty strings"
+            )
+        patterns.append(pattern.strip())
+    return tuple(patterns)
 
 
 def _parse_item(raw: object, index: int, seen: set[str]) -> WatchItem:

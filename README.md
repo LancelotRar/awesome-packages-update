@@ -27,20 +27,22 @@
 - 在命中项中取 `published_at` 最新的一个，读取该 tag 的完整 Release 及其资产；
 - 标记仍为该 Release 的 `updated_at`，与不写此字段时相同。
 
-没有任何条目命中时按检测失败处理：本次不投递、标记不推进、下次运行重试，不会静默跳过。该字段只与 `latest` 搭配，写在 `strategy: tag` 条目上会被清单校验拒绝。
+没有任何条目命中时按检测失败处理：本次不投递、标记不推进、下次运行重试，不会静默跳过。该字段只与 `latest` 搭配，写在 `strategy: tag` 条目上会被清单校验拒绝；显式写成 `[]` 同样会被拒绝，省略该字段才表示「不按 tag 过滤」。
 
 ```yaml
-  - id: bitwarden-desktop
+  - id: bitwarden-win
     repo: bitwarden/clients
     strategy: latest
-    release_tag_include: ["desktop-*"]
+    release_tag_include: ["desktop-v*"]
+    asset_include: "bitwarden+portable+.exe, bitwarden+installer+.exe"
+    asset_exclude: "commercial"
     notify:
-      title: "Bitwarden Desktop 新版本发布！"
-      description: "开源密码管理器桌面版"
+      title: "bitwarden-win 新版本发布！"
+      description: "开源密码管理器的 Windows 桌面客户端"
       group_url: ""
       channel_url: ""
       project_url: "https://github.com/bitwarden/clients"
-      tag: "#bitwardendesktop"
+      tag: "#bitwarden_win"
 ```
 
 ### 资产过滤
@@ -74,6 +76,8 @@
 ```
 
 `id` 只能用小写字母、数字和 `-`，且不可重复。`notify` 下的字段留空时，对应行不会出现在消息里。
+
+`notify.tag` 统一写成 `#` + `id`，并把 `id` 里的 `-` 换成 `_`：Telegram 话题标签只接受字母、数字和下划线，`bitwarden-win` 因此写作 `#bitwarden_win`。
 
 首次接入时建议先按当前版本写入 `data/state.json` 的 `marker`，避免切换后重复推送一次旧版本；或者接受首次运行推送一次当前最新版。
 

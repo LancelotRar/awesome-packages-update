@@ -56,7 +56,14 @@ def _latest_detection(release: dict) -> Detection:
     )
 
 
-def _select_tag_included(item: WatchItem, releases: list[dict]) -> dict:
+def _require_release(release: dict | None, tag: str, item: WatchItem) -> dict:
+    """Return *release*, or fail when *tag* is absent from *item*'s repo."""
+    if release is None:
+        raise RuntimeError(f"Release tag '{tag}' not found in {item.repo}")
+    return release
+
+
+def _select_by_tag_filter(item: WatchItem, releases: list[dict]) -> dict:
     """Return the newest non-prerelease release whose tag matches a pattern.
 
     Matching is glob-style and case-insensitive; patterns are OR'd. An
@@ -92,19 +99,19 @@ def detect(item: WatchItem, token: str = "") -> Detection | None:
                 return None
             return _latest_detection(release)
 
-        selected = _select_tag_included(item, fetch_releases(item.repo, token))
+        selected = _select_by_tag_filter(item, fetch_releases(item.repo, token))
         tag = selected["tag_name"]
-        release = fetch_release_by_tag(item.repo, tag, token)
-        if release is None:
-            raise RuntimeError(f"Release tag '{tag}' not found in {item.repo}")
+        release = _require_release(
+            fetch_release_by_tag(item.repo, tag, token), tag, item
+        )
         return _latest_detection(release)
 
     if item.strategy == STRATEGY_TAG:
-        release = fetch_release_by_tag(item.repo, item.release_tag, token)
-        if release is None:
-            raise RuntimeError(
-                f"Release tag '{item.release_tag}' not found in {item.repo}"
-            )
+        release = _require_release(
+            fetch_release_by_tag(item.repo, item.release_tag, token),
+            item.release_tag,
+            item,
+        )
 
         assets = get_matching_assets(release, item.asset_include,
                                      item.asset_exclude)
