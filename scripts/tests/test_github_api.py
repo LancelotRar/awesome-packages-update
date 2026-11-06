@@ -137,16 +137,6 @@ def test_fetch_latest_release_retries_429(monkeypatch):
     assert sleeps == [2]
 
 
-def test_fetch_file_text_retries_429(monkeypatch):
-    _, sleeps = _install(
-        monkeypatch,
-        _http_error(429, {"Retry-After": "3"}, reason="rate limited"),
-        _Resp(b"hello"),
-    )
-    assert github_api.fetch_file_text("foo/bar", "main", "a.txt") == "hello"
-    assert sleeps == [3]
-
-
 # --- preserved behavior: guards on existing paths -----------------------
 
 def test_get_json_permission_403_fails_without_retry(monkeypatch):
@@ -179,8 +169,3 @@ def test_get_json_invalid_json_raises(monkeypatch):
 def test_fetch_latest_release_empty_returns_none(monkeypatch):
     _install(monkeypatch, _Resp(b"[]"))
     assert github_api.fetch_latest_release("foo/bar") is None
-
-
-def test_fetch_file_text_404_returns_none(monkeypatch):
-    _install(monkeypatch, _http_error(404, reason="Not Found"))
-    assert github_api.fetch_file_text("foo/bar", "main", "missing.txt") is None

@@ -34,7 +34,7 @@
 
 - `check_release_telethon.py`、`check_release_module_telethon.py`、`check_release_in_repo_telethon.py`、`persist.py` 及其测试——这些是旧版逐项目 workflow 的脚本，只服务于 `awesome-actions` 里已停用的 workflow。
 - `data/last-release-*.txt`——旧标记文件，其值已折算进 `state.json`。
-- `github_api.py` 里的 `fetch_file_text` / `fetch_latest_commit` / `list_dir_assets` 属于旧脚本用到的函数，随文件一并带过来了但新流程不调用；后续可清理。
+- `github_api.py` 里的 `fetch_file_text` / `fetch_latest_commit` / `list_dir_assets` 属于旧脚本用到的函数，随文件一并带过来了但新流程不调用；已于 2026-11-06 随对应单测一并清理。
 
 ## 3. 标记迁移
 
