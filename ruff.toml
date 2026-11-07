@@ -1,0 +1,6 @@
+target-version = "py313"
+
+[lint]
+# Explicit baseline: lint results must not depend on the ruff version's
+# defaults. Widen deliberately, with a fix plan, rather than by accident.
+select = ["E4", "E7", "E9", "F"]
