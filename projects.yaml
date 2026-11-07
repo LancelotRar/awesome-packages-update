@@ -34,11 +34,11 @@ projects:
     asset_exclude: "thunder"
     notify:
       title: "FongMi 模块更新！"
-      description: "FongMi 各模块独立安装包，安装成功率高，注意查看 Release 日志，匹配 fongmiTV 对应版本"
+      description: "FongMi 各模块独立安装包，需匹配 fongmiTV 版本"
       group_url: "https://t.me/fongmi_official"
       channel_url: "https://t.me/fongmi_release"
       project_url: "https://github.com/FongMi/Release"
-      tag: "#fongmimodule"
+      tag: "#fongmi_module"
 
   - id: ainanplayer
     repo: Ainanya21/AinanPlayer
