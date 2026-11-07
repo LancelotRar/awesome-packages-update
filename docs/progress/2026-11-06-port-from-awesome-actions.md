@@ -3,7 +3,7 @@
 - 日期：2026-11-06
 - 源：`awesome-actions` 分支 `refactor/check-release-runner`（未提交的工作区改动）
 - 目标：`LancelotRar/awesome-packages-update`（公开仓库）
-- 状态：代码已落盘、单测通过、真实 API 标记核对完成；已提交并推送至 `main`，旧仓库的发布监控已停用；**secrets 未配置、尚未实跑**
+- 状态：代码已落盘、单测通过、真实 API 标记核对完成；已提交并推送至 `main`，旧仓库的发布监控已停用；secrets 已配置，首跑、告警实跑与定时运行均已验证（2026-11-07）
 
 ---
 
@@ -73,17 +73,17 @@
 
 | 步骤 | 状态 | 内容 |
 |---|---|---|
-| 1 | 未完成 | 配置 secrets：`TG_BOT_TOKEN_03BOT`、`TG_CHAT_ID_UPDATE_CHANNEL`、`TG_API_ID`、`TG_API_HASH`，可选 `TG_CHAT_ID_ADMIN`。截至 2026-11-06 `gh secret list` 为空。 |
-| 2 | 未完成 | 手动触发一次 `project=all`（不加 force）：预期 delivered=1（flclash）、unchanged=7、failed=0。 |
+| 1 | 已完成 | 5 个 secret 已于 2026-11-06 配置（`gh secret list` 可见）。 |
+| 2 | 已完成 | 手动 `project=all` 首跑 42201966938：`delivered=1`（flclash）、`unchanged=7`、`failed=0`。 |
 | 3 | 已完成 | 旧仓库的发布监控已停用并移除，不再有第二套系统重复推送。 |
-| 4 | 未完成 | 观察一个自然日，确认定时运行与 `state.json` 回写正常。 |
+| 4 | 已完成 | 2026-11-07 定时运行 42331794872：`delivered=2`（两条均为上游新版本）、`unchanged=33`、`failed=0`；`last_checked` 已前进。触发时刻比 cron 计划晚约 3.5 小时，属 GitHub 调度延迟。 |
 
-> 旧 workflow 已停用，原本“配好 secrets 前旧 workflow 抢先运行”的重复推送窗口不存在了；现在的空窗期是 secrets 配置到首次成功运行之间。`data/state.json` 未被任何运行改写，8 条 marker 仍是移植时写入的值。
+> 收尾已完成。期间还做了两轮扩展：导入 `git_softs_download` 清单（8 → 46 条，随后按维护者取舍裁剪到 35 条，见 spec #8），以及首跑暴露的缺陷修复（Telegram 登录限流、资产列表截断、预发布混入、零命中静默成功）。
 
 ## 6. 风险与待决
 
 1. **公开仓库的内容**：`projects.yaml` 含 Telegram 群组/频道链接，`docs/` 与运行日志公开。不含任何密钥。
-2. **secrets 未配置**（2026-11-06 核对 `gh secret list` 为空）：首次运行会因缺少 `TG_BOT_TOKEN` 等直接退出（`run_checks.py` 的 `_require_env` 行为），不会误投递。
-3. **告警链路**：`send_text` + `TG_CHAT_ID_ADMIN` 只有单测，未实跑过。
+2. **secrets**：已完成——5 个 secret 已配置，三类运行（手动首跑、告警实跑、定时运行）均用到。
+3. **告警链路**：已完成——2026-11-06 在 `probe/alert-test` 分支实跑，`alerted` 标记生效（run 42203848750）。
 4. **旧脚本退役**：已完成——旧仓库的发布监控脚本与旧标记文件已随该监控一并移除（据维护者告知；本次按约定未再访问该仓库核验）。
-5. **首次补投**：flclash 的 11-04 版本会在首次运行时投递一次，频道里看起来像「延迟的更新」，属预期。
+5. **首次补投**：已完成——flclash 的 11-04 版本已在首跑投递。
