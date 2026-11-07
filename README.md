@@ -106,6 +106,9 @@ PROJECT=all python scripts/run_checks.py
 
 # 单测
 python -m pytest scripts/tests -q
+
+# 审计资产过滤（需要 GITHUB_TOKEN）
+GITHUB_TOKEN=$(gh auth token) python scripts/audit_assets.py
 ```
 
 本地运行同样需要 `TG_BOT_TOKEN` / `TG_CHAT_ID` / `TG_API_ID` / `TG_API_HASH`；仅做检测时可以只设 `GITHUB_TOKEN`（可选）。
@@ -126,4 +129,5 @@ scripts/tests/                         单元测试
 docs/adr/                              架构决策记录
 docs/agents/                           agent skill 约定
 docs/progress/                         实施记录
+docs/runbook.md                        运维手册（补投、审计、轮换）
 ```
