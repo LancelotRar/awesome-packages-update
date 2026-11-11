@@ -39,7 +39,13 @@ jobs:
       # 避免试点时绕过评审直接写主分支。
       BRANCH: ${{ github.ref_name }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Re-run 会沿用触发事件时的 SHA，直接 checkout 会把 data/state.json
+          # 回退到当时版本，导致已投递的条目重发一遍。显式跟随分支最新提交，
+          # 让重跑使用当前的代码与状态。
+          ref: ${{ github.ref_name }}
 
       - name: Setup Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0

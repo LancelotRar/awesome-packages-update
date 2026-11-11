@@ -39,6 +39,17 @@ gh workflow run check-releases.yml -f project=<id> -f force=true
 `force=true` 忽略 marker 重投，只影响指定的这一条。不要把 `force=true` 和
 `project=all` 一起用——那会把全部条目重发一遍。
 
+## 重跑（Re-run）与重复投递
+
+GitHub 的 Re-run 会沿用触发事件时的 `GITHUB_SHA`。如果按旧 SHA checkout，
+`data/state.json` 会退回上一次 attempt 之前的版本，已经投递过的条目会再发一遍
+（2026-11-11 的 powershell v7.7.0 与 cmfa v2.11.37 就是这样重复的）。
+
+两个 workflow 的 checkout 都显式写成 `ref: ${{ github.ref_name }}`，重跑时取分支
+最新提交，state 不会回退。仍建议重跑前确认 `origin/main` 已有上一次的
+`update release check state [skip ci]` 提交；只想补投单条时，优先用
+`PROJECT=<id> FORCE=true` 的一次性 dispatch，而不是 Re-run all jobs。
+
 ## 重置一个条目的 marker
 
 需要跳过某条目的“当前版本”（例如刚补投过、或切换了版本选择逻辑）时：
