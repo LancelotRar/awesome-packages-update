@@ -30,18 +30,17 @@ def _text_cfg() -> TelegramConfig:
     )
 
 
-def _patched_client(send_message_side_effect):
-    """Patch ``notifier.TelegramClient`` with an in-memory fake client."""
-    client_cls = MagicMock()
-    inst = client_cls.return_value
-    inst.start = AsyncMock(return_value=None)
-    inst.send_message = AsyncMock(side_effect=send_message_side_effect)
-    inst.disconnect = AsyncMock(return_value=None)
-    return patch("notifier.TelegramClient", client_cls)
+def _fake_client(send_message_side_effect=None):
+    """An in-memory Telegram client; the notifier never owns it."""
+    client = MagicMock()
+    client.send_message = AsyncMock(side_effect=send_message_side_effect)
+    client.send_file = AsyncMock(return_value=None)
+    client.disconnect = AsyncMock(return_value=None)
+    return client
 
 
-def _notify(release: dict) -> bool:
-    return asyncio.run(notify(release, _text_cfg(), "", "", ""))
+def _notify(release: dict, client, assets=()) -> bool:
+    return asyncio.run(notify(release, _text_cfg(), client, assets))
 
 
 # ---------------------------------------------------------------------------
@@ -63,28 +62,20 @@ RELEASE_2_ASSETS = {
 
 
 def _album_client(upload_side_effect):
-    """Return (patch, send_file_mock) with a fake client for album tests.
+    """Return (client, stream_patch) with a fake client for album tests.
 
     ``upload_side_effect``: async callable ``(data, file_name=…,
     file_size=…, progress_callback=…)`` — raise to simulate a failed
     upload of a specific asset.
     """
-    client_cls = MagicMock()
-    inst = client_cls.return_value
-    inst.start = AsyncMock(return_value=None)
-    inst.disconnect = AsyncMock(return_value=None)
-    inst.upload_file = upload_side_effect
-    inst.send_file = AsyncMock(return_value=None)
+    client = _fake_client()
+    client.upload_file = upload_side_effect
 
     fake_resp = MagicMock()
     fake_resp.read = MagicMock(return_value=b"APK-BYTES")
-
-    def fake_stream(asset, token):
-        return fake_resp
-
-    album_patch = patch("notifier.TelegramClient", client_cls)
-    stream_patch = patch("notifier.stream_asset", fake_stream)
-    return album_patch, stream_patch, inst
+    stream_patch = patch("notifier.stream_asset",
+                         lambda asset, token: fake_resp)
+    return client, stream_patch
 
 
 def _upload(uploaded_names: list[str]):
@@ -206,10 +197,11 @@ def test_escapes_dynamic_text_fields():
 
 def test_text_notification_all_success_returns_true():
     """Every chat receives the text message -> notify() reports success."""
-    with _patched_client(None):
-        ok = _notify(RELEASE_NO_ASSETS)
+    client = _fake_client()
+    ok = _notify(RELEASE_NO_ASSETS, client)
 
     assert ok is True
+    assert client.send_message.await_count == len(_text_cfg().chat_ids)
 
 
 def test_text_notification_includes_tag():
@@ -217,14 +209,14 @@ def test_text_notification_includes_tag():
     # Given a config carrying a project tag:
     cfg = _text_cfg()
     cfg.notify_tag = "#bettbox"
+    client = _fake_client()
 
     # When the text notification is sent:
-    with _patched_client(None) as client_cls:
-        ok = asyncio.run(notify(RELEASE_NO_ASSETS, cfg, "", "", ""))
+    ok = asyncio.run(notify(RELEASE_NO_ASSETS, cfg, client, ()))
 
     # Then the delivered message ends with that hashtag.
     assert ok is True
-    sent_text = client_cls.return_value.send_message.await_args.args[1]
+    sent_text = client.send_message.await_args.args[1]
     assert sent_text.endswith("\n#bettbox")
 
 
@@ -232,33 +224,34 @@ def test_pub_date_uses_beijing_calendar_date():
     """A release published after 16:00 UTC is dated the next day locally."""
     # Given a release published at 17:52 UTC (01:52 the next day in UTC+8):
     release = dict(RELEASE_NO_ASSETS, published_at="2026-11-11T17:52:43Z")
+    client = _fake_client()
 
     # When the notification is sent:
-    with _patched_client(None) as client_cls:
-        ok = asyncio.run(notify(release, _text_cfg(), "", "", ""))
+    ok = _notify(release, client)
 
     # Then the message shows the Beijing date, not the UTC one.
     assert ok is True
-    sent_text = client_cls.return_value.send_message.await_args.args[1]
+    sent_text = client.send_message.await_args.args[1]
     assert "发布时间：2026-11-12" in sent_text
 
 
 def test_text_notification_disables_link_preview():
     """send_message must explicitly disable the web link preview."""
     # Given the standard text-notification path:
-    with _patched_client(None) as client_cls:
-        ok = asyncio.run(notify(RELEASE_NO_ASSETS, _text_cfg(), "", "", ""))
+    client = _fake_client()
+
+    ok = _notify(RELEASE_NO_ASSETS, client)
 
     # Then link_preview=False is passed so URLs stay unexpanded.
     assert ok is True
-    kwargs = client_cls.return_value.send_message.await_args.kwargs
+    kwargs = client.send_message.await_args.kwargs
     assert kwargs.get("link_preview") is False
 
 
 def test_text_notification_all_sends_fail_returns_false():
     """All sends raise -> notify() must report failure (retry on next run)."""
-    with _patched_client(Exception("send failed")):
-        ok = _notify(RELEASE_NO_ASSETS)
+    client = _fake_client(Exception("send failed"))
+    ok = _notify(RELEASE_NO_ASSETS, client)
 
     assert ok is False
 
@@ -268,8 +261,8 @@ def test_text_notification_floodwait_zero_sent_returns_false():
     def _flood(cid, *a, **k):
         raise tg_errors.FloodWaitError(request=None, capture=42)
 
-    with _patched_client(_flood):
-        ok = _notify(RELEASE_NO_ASSETS)
+    client = _fake_client(_flood)
+    ok = _notify(RELEASE_NO_ASSETS, client)
 
     assert ok is False
 
@@ -281,8 +274,8 @@ def test_text_notification_partial_failure_returns_false():
             raise RuntimeError("send failed")
         return None
 
-    with _patched_client(_flaky):
-        ok = _notify(RELEASE_NO_ASSETS)
+    client = _fake_client(_flaky)
+    ok = _notify(RELEASE_NO_ASSETS, client)
 
     assert ok is False
 
@@ -295,31 +288,31 @@ def test_text_notification_partial_failure_returns_false():
 
 def test_album_partial_upload_failure_returns_false_and_sends_nothing():
     """One of two uploads fails -> no incomplete album, notify() = False."""
-    album_patch, stream_patch, inst = _album_client(_upload(["a.apk"]))
-    with album_patch, stream_patch:
-        ok = _notify(RELEASE_2_ASSETS)
+    client, stream_patch = _album_client(_upload(["a.apk"]))
+    with stream_patch:
+        ok = _notify(RELEASE_2_ASSETS, client, RELEASE_2_ASSETS["assets"])
 
     # The incomplete album must NOT be sent; failure must be reported
     # so the caller skips persistence and retries next run.
-    inst.send_file.assert_not_called()
+    client.send_file.assert_not_called()
     assert ok is False
 
 
 def test_album_all_upload_success_and_send_succeeds_returns_true():
     """Every asset uploads and album sends to every chat -> notify() = True."""
-    album_patch, stream_patch, inst = _album_client(_upload(["a.apk", "b.apk"]))
-    with album_patch, stream_patch:
-        ok = _notify(RELEASE_2_ASSETS)
+    client, stream_patch = _album_client(_upload(["a.apk", "b.apk"]))
+    with stream_patch:
+        ok = _notify(RELEASE_2_ASSETS, client, RELEASE_2_ASSETS["assets"])
 
-    assert inst.send_file.call_count == len(_text_cfg().chat_ids)
+    assert client.send_file.call_count == len(_text_cfg().chat_ids)
     assert ok is True
 
 
 def test_album_all_uploads_fail_returns_false():
     """Every upload fails -> existing all-failed branch returns False."""
-    album_patch, stream_patch, _ = _album_client(_upload([]))
-    with album_patch, stream_patch:
-        ok = _notify(RELEASE_2_ASSETS)
+    client, stream_patch = _album_client(_upload([]))
+    with stream_patch:
+        ok = _notify(RELEASE_2_ASSETS, client, RELEASE_2_ASSETS["assets"])
 
     assert ok is False
 
@@ -340,29 +333,29 @@ def test_album_splits_more_than_ten_assets_into_batches():
     }
     cfg = TelegramConfig(bot_token="TOK", chat_ids=[111], api_id=1, api_hash="H")
 
-    album_patch, stream_patch, inst = _album_client(_upload(names))
-    with album_patch, stream_patch:
-        ok = asyncio.run(notify(release, cfg, "", "", ""))
+    client, stream_patch = _album_client(_upload(names))
+    with stream_patch:
+        ok = asyncio.run(notify(release, cfg, client, release["assets"]))
 
     assert ok is True
-    calls = inst.send_file.call_args_list
+    calls = client.send_file.call_args_list
     assert len(calls) == 2
     assert len(calls[0].args[1]) == 10
     # Telegram rejects single-item albums, so the tail is sent as one media.
     assert not isinstance(calls[1].args[1], list)
 
 
-def test_shared_client_is_not_disconnected_when_an_upload_fails(monkeypatch):
-    client = MagicMock()
-    client.disconnect = AsyncMock(return_value=None)
+def test_client_is_never_disconnected_by_the_notifier(monkeypatch):
+    """The caller owns the session; an upload failure must not close it."""
+    client, _stream_patch = _album_client(_upload([]))
 
     def _boom(asset, token=""):
         raise RuntimeError("download failed")
 
     monkeypatch.setattr(notifier, "stream_asset", _boom)
 
-    ok = asyncio.run(notify(RELEASE_2_ASSETS, _text_cfg(), "", ".apk", "",
-                            client=client))
+    ok = asyncio.run(notify(RELEASE_2_ASSETS, _text_cfg(), client,
+                            RELEASE_2_ASSETS["assets"]))
 
     assert ok is False
     client.disconnect.assert_not_awaited()

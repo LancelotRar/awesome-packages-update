@@ -26,8 +26,8 @@ from html import escape
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from detector import detect
-from github_api import get_matching_assets
+from env import chat_ids as parse_chat_ids
+from scan import scan_item
 from watchlist import load_watchlist
 
 if TYPE_CHECKING:
@@ -92,16 +92,13 @@ async def _deliver(cfg: TelegramConfig, texts: list[str]) -> bool:
     Opening once per run — rather than once per message — avoids repeated
     Telegram logins when several reports have to go out.
     """
-    from notifier import open_client, send_text
+    from notifier import send_text, telegram_session
 
-    client = await open_client(cfg)
-    try:
+    async with telegram_session(cfg) as client:
         all_ok = True
         for text in texts:
-            all_ok = await send_text(text, cfg, client=client) and all_ok
+            all_ok = await send_text(text, cfg, client) and all_ok
         return all_ok
-    finally:
-        await client.disconnect()
 
 
 def _notify_failure(text: str) -> None:
@@ -118,13 +115,13 @@ def _notify_failure(text: str) -> None:
               f"{'TG_CHAT_ID_ADMIN' if not chat_raw else ', '.join(missing)}")
         return
     try:
-        chat_ids = [int(c) for c in chat_raw.split(",") if c.strip()]
-        sent = _send([text], chat_ids)
+        ids = parse_chat_ids(chat_raw, "TG_CHAT_ID_ADMIN")
+        sent = _send([text], ids)
     except Exception as e:  # a failed report must never mask the audit result
         print(f"::warning::Telegram failure report failed: {e}")
         return
     if sent:
-        print(f"Failure report sent to {len(chat_ids)} chat(s)", flush=True)
+        print(f"Failure report sent to {len(ids)} chat(s)", flush=True)
     else:
         print("::warning::Telegram failure report was not delivered to "
               "every chat")
@@ -138,32 +135,30 @@ def main() -> int:
     problems: list[tuple[str, str]] = []
 
     for item in items:
-        try:
-            detection = detect(item, token)
-        except Exception as e:  # one broken item must not hide the others
-            print(f"::error::{item.id}: detection failed: {e}", flush=True)
-            problems.append((item.id, f"检测失败：{e}"))
+        result = scan_item(item, token)
+        if result.error:
+            print(f"::error::{item.id}: detection failed: {result.error}",
+                  flush=True)
+            problems.append((item.id, f"检测失败：{result.error}"))
             continue
 
-        if detection is None:
+        if result.detection is None:
             print(f"::warning::{item.id}: no releases yet", flush=True)
             continue
 
-        assets = detection.release.get("assets") or []
-        matched = get_matching_assets(detection.release, item.asset_include,
-                                      item.asset_exclude)
-        tag = detection.release.get("tag_name", "?")
-        if not assets:
-            print(f"::warning::{item.id}: {tag} has no assets yet", flush=True)
-            continue
-        if item.asset_include.strip() and not matched:
-            print(f"::error::{item.id}: {tag} — 0 assets matched "
+        if result.problem:
+            print(f"::error::{item.id}: {result.tag} — 0 assets matched "
                   f"{item.asset_include!r}", flush=True)
-            problems.append(
-                (item.id, f"{tag} 没有资产命中 {item.asset_include!r}")
-            )
-        else:
-            print(f"{item.id}: {tag} — {len(matched)} asset(s)", flush=True)
+            problems.append((item.id, result.problem))
+            continue
+
+        if not result.asset_count:
+            print(f"::warning::{item.id}: {result.tag} has no assets yet",
+                  flush=True)
+            continue
+
+        print(f"{item.id}: {result.tag} — {len(result.matched)} asset(s)",
+              flush=True)
 
     print(f"Audited {len(items)} item(s), {len(problems)} problem(s)")
     if problems:

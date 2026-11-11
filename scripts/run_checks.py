@@ -24,11 +24,10 @@ from __future__ import annotations
 import asyncio
 import os
 import sys
-from dataclasses import dataclass
 from pathlib import Path
 
-from detector import Detection, detect
-from github_api import get_matching_assets
+from env import chat_ids, required
+from scan import ScanResult, scan_item
 from notifier import TelegramConfig, notify, open_client, send_text
 from state import (
     load_state,
@@ -49,15 +48,6 @@ FAILURE_ALERT_THRESHOLD = 3
 _HERE = Path(__file__).resolve().parent
 
 
-@dataclass
-class Outcome:
-    """Result of the detection phase for one watch item."""
-
-    item: WatchItem
-    detection: Detection | None = None
-    error: str = ""
-
-
 def _now() -> str:
     return now_iso()
 
@@ -67,28 +57,24 @@ def _short(marker: str) -> str:
 
 
 def _parse_chat_ids(raw: str, var: str) -> list[int]:
-    parts = [c.strip() for c in raw.split(",") if c.strip()]
-    if not parts:
-        print(f"::error::{var} is empty after splitting")
-        sys.exit(1)
     try:
-        return [int(c) for c in parts]
-    except ValueError as e:
-        print(f"::error::{var} contains a non-numeric value: {e}")
+        return chat_ids(raw, var)
+    except RuntimeError as e:
+        print(f"::error::{e}")
         sys.exit(1)
 
 
 def _require_env(var: str) -> str:
-    value = os.environ.get(var, "")
-    if not value:
-        print(f"::error::Missing required env var: {var}")
+    try:
+        return required(var)
+    except RuntimeError as e:
+        print(f"::error::{e}")
         sys.exit(1)
-    return value
 
 
-def _telegram(item: WatchItem, chat_ids: list[int]) -> TelegramConfig:
+def _telegram(item: WatchItem, targets: list[int]) -> TelegramConfig:
     copy = item.notify
-    cfg = _credentials(chat_ids)
+    cfg = _credentials(targets)
     cfg.notify_title = copy.title
     cfg.notify_group_url = copy.group_url
     cfg.notify_channel_url = copy.channel_url
@@ -98,11 +84,11 @@ def _telegram(item: WatchItem, chat_ids: list[int]) -> TelegramConfig:
     return cfg
 
 
-def _credentials(chat_ids: list[int]) -> TelegramConfig:
+def _credentials(targets: list[int]) -> TelegramConfig:
     """Build a client-only config; the same connection serves every item."""
     return TelegramConfig(
         bot_token=_require_env("TG_BOT_TOKEN"),
-        chat_ids=chat_ids,
+        chat_ids=targets,
         api_id=int(_require_env("TG_API_ID")),
         api_hash=_require_env("TG_API_HASH"),
     )
@@ -120,17 +106,12 @@ def _select(items: list[WatchItem], raw: str) -> list[WatchItem]:
     return selected
 
 
-async def _detect_all(items: list[WatchItem], token: str) -> list[Outcome]:
+async def _scan_all(items: list[WatchItem], token: str) -> list[ScanResult]:
     sem = asyncio.Semaphore(CHECK_CONCURRENCY)
 
-    async def one(item: WatchItem) -> Outcome:
+    async def one(item: WatchItem) -> ScanResult:
         async with sem:
-            try:
-                detection = await asyncio.to_thread(detect, item, token)
-                return Outcome(item=item, detection=detection)
-            except Exception as e:  # one item must never abort the rest
-                print(f"::error::{item.id}: {e}", flush=True)
-                return Outcome(item=item, error=str(e))
+            return await asyncio.to_thread(scan_item, item, token)
 
     return list(await asyncio.gather(*(one(item) for item in items)))
 
@@ -175,13 +156,13 @@ async def main() -> int:
 
     force = os.environ.get("FORCE", "").lower() == "true"
     token = os.environ.get("GITHUB_TOKEN", "")
-    chat_ids = (_parse_chat_ids(_require_env("TG_CHAT_ID"), "TG_CHAT_ID")
-                if active else [])
+    targets = (_parse_chat_ids(_require_env("TG_CHAT_ID"), "TG_CHAT_ID")
+               if active else [])
 
     print(f"Checking {len(active)} watch item(s), skipping {len(skipped)} "
           f"disabled; force={force}")
 
-    outcomes = await _detect_all(active, token)
+    scans = await _scan_all(active, token)
 
     row_by_id: dict[str, tuple[str, str, str]] = {}
     failed: list[str] = []
@@ -189,17 +170,18 @@ async def main() -> int:
     client = None  # opened lazily, reused for every delivery and alert
     client_error = ""  # first failure to connect; later items fail fast
 
-    for outcome in outcomes:
-        item = outcome.item
+    for result in scans:
+        item = result.item
         now = _now()
 
-        if outcome.error:
-            record_failure(state, item.id, now, outcome.error)
+        if result.error:
+            print(f"::error::{item.id}: {result.error}", flush=True)
+            record_failure(state, item.id, now, result.error)
             failed.append(item.id)
-            row_by_id[item.id] = (item.id, "❌ detection", outcome.error)
+            row_by_id[item.id] = (item.id, "❌ detection", result.error)
             continue
 
-        detection = outcome.detection
+        detection = result.detection
         if detection is None:
             print(f"{item.id}: no releases yet — nothing to do")
             mark_healthy(state, item.id, now)
@@ -217,8 +199,7 @@ async def main() -> int:
               f"({_short(previous)} -> {_short(detection.marker)}), "
               f"assets={detection.asset_count}", flush=True)
 
-        if item.asset_include.strip() and not get_matching_assets(
-                detection.release, item.asset_include, item.asset_exclude):
+        if result.problem:
             record_failure(state, item.id, now, "no assets matched")
             failed.append(item.id)
             row_by_id[item.id] = (item.id, "❌ no assets", item.asset_include)
@@ -228,15 +209,14 @@ async def main() -> int:
         try:
             if client is None and not client_error:
                 try:
-                    client = await open_client(_credentials(chat_ids))
+                    client = await open_client(_credentials(targets))
                 except Exception as e:  # one failure must not retry per item
                     client_error = str(e)
                     print(f"::error::Telegram client unavailable: {e}")
             if client is None:
                 raise RuntimeError(client_error or "Telegram client unavailable")
-            ok = await notify(detection.release, _telegram(item, chat_ids),
-                              token, item.asset_include, item.asset_exclude,
-                              client=client)
+            ok = await notify(detection.release, _telegram(item, targets),
+                              client, result.matched, token)
         except Exception as e:  # delivery errors are per-item, not fatal
             ok = False
             error = str(e)
@@ -276,8 +256,7 @@ async def main() -> int:
                         print(f"::error::Telegram client unavailable: {e}")
                 if client is None:
                     raise RuntimeError(client_error or "client unavailable")
-                if await send_text(text, _telegram(item, admin_ids),
-                                   client=client):
+                if await send_text(text, _telegram(item, admin_ids), client):
                     mark_alerted(state, item.id)
                     alerted = True
             except Exception as e:

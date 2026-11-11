@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import audit_assets
+import scan as scan_module
 from detector import Detection
 from watchlist import NotifyCopy, WatchItem
 
@@ -45,8 +46,8 @@ def _patch(monkeypatch, items, *, detected=None, matched=None, error=None):
             raise error
         return detected
 
-    monkeypatch.setattr(audit_assets, "detect", fake_detect)
-    monkeypatch.setattr(audit_assets, "get_matching_assets",
+    monkeypatch.setattr(scan_module, "detect", fake_detect)
+    monkeypatch.setattr(scan_module, "get_matching_assets",
                         lambda release, include, exclude: matched or [])
 
 
@@ -62,8 +63,16 @@ def test_zero_match_fails(monkeypatch):
     assert audit_assets.main() == 1
 
 
-def test_release_without_assets_is_only_a_warning(monkeypatch):
+def test_release_without_assets_fails_when_a_filter_is_set(monkeypatch):
+    """0 assets + include filter is a failure, same policy as the runner."""
     _patch(monkeypatch, [_item("a")], detected=_detection(assets=0), matched=[])
+
+    assert audit_assets.main() == 1
+
+
+def test_release_without_assets_is_a_warning_without_a_filter(monkeypatch):
+    _patch(monkeypatch, [_item("a", include="")],
+           detected=_detection(assets=0), matched=[])
 
     assert audit_assets.main() == 0
 

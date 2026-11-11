@@ -7,6 +7,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import run_checks
+import scan as scan_module
 from detector import Detection
 from state import load_state, save_state
 from watchlist import NotifyCopy, WatchItem
@@ -44,9 +45,13 @@ def _clear_env(monkeypatch):
 
 def _run(monkeypatch, tmp_path, *, markers=None, notify_ok=True,
          items=None, project=None, force=False, admin=None,
-         detected=None, summary=None, telegram_env=True, opened=None, open_error=None):
+         detected=None, summary=None, telegram_env=True, opened=None,
+         open_error=None, matched=None):
     items = items or _items()
     markers = markers or {}
+    if matched is None:
+        matched = [{"name": "a.apk", "size": 1,
+                    "browser_download_url": "https://example.com/a.apk"}]
 
     _clear_env(monkeypatch)
     monkeypatch.setenv("TG_CHAT_ID", "111")
@@ -75,12 +80,14 @@ def _run(monkeypatch, tmp_path, *, markers=None, notify_ok=True,
             raise outcome
         return outcome
 
-    monkeypatch.setattr(run_checks, "detect", fake_detect)
+    monkeypatch.setattr(scan_module, "detect", fake_detect)
+    monkeypatch.setattr(scan_module, "get_matching_assets",
+                        lambda release, include, exclude: matched)
 
     delivered: list[str] = []
     alerts: list[str] = []
 
-    async def fake_notify(release, cfg, token, include, exclude, client=None):
+    async def fake_notify(release, cfg, client, assets, token):
         delivered.append(cfg.notify_title)
         return notify_ok
 
@@ -354,7 +361,7 @@ def test_zero_matching_assets_fails_before_opening_client(monkeypatch, tmp_path)
     opened: list = []
 
     code, delivered, _alerts, state = _run(
-        monkeypatch, tmp_path, items=items, opened=opened,
+        monkeypatch, tmp_path, items=items, opened=opened, matched=[],
     )
 
     assert code == 1

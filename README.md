@@ -122,6 +122,8 @@ GITHUB_TOKEN=$(gh auth token) python scripts/audit_assets.py
 projects.yaml                          监控清单
 data/state.json                        持久化标记
 scripts/run_checks.py                  主流程
+scripts/scan.py                        检测 + 资产匹配（runner 与 audit 共用）
+scripts/env.py                         环境变量解析（chat id、必填项）
 scripts/watchlist.py                   清单加载与校验
 scripts/detector.py                    latest / tag 检测
 scripts/state.py                       data/state.json 原子读写

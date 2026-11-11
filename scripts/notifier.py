@@ -4,14 +4,16 @@ from __future__ import annotations
 
 import asyncio
 import io
+from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from html import escape
+from typing import Sequence
 
 from telethon import TelegramClient, errors as tg_errors
 from telethon.sessions import StringSession
 from telethon.tl.types import DocumentAttributeFilename
 
-from github_api import get_matching_assets, stream_asset
+from github_api import stream_asset
 from timestamps import to_beijing_date
 
 _ALBUM_MAX = 10  # Telegram albums accept 2-10 items
@@ -86,6 +88,21 @@ async def open_client(cfg: TelegramConfig) -> TelegramClient:
     return client
 
 
+@asynccontextmanager
+async def telegram_session(cfg: TelegramConfig):
+    """One Telegram session for the caller's whole unit of work.
+
+    Callers that send several messages should do all of them inside a
+    single ``async with`` block, so a run never logs in and out per
+    message.
+    """
+    client = await open_client(cfg)
+    try:
+        yield client
+    finally:
+        await client.disconnect()  # type: ignore[misc]
+
+
 async def _send_batch(client: TelegramClient, chat_id: int, batch: list,
                       attrs: list, caption: str) -> None:
     """Send one album batch (1-10 media) with *caption* on its last item."""
@@ -103,41 +120,35 @@ async def _send_batch(client: TelegramClient, chat_id: int, batch: list,
     )
 
 
-async def send_text(text: str, cfg: TelegramConfig, client=None) -> bool:
+async def send_text(text: str, cfg: TelegramConfig, client) -> bool:
     """Send a plain text message (no files) to every chat.
 
-    Pass *client* to reuse a connection owned by the caller; otherwise one
-    is opened here and closed before returning. Returns ``True`` only when
-    every chat received it.
+    *client* is owned by the caller (see ``telegram_session``), so a run
+    keeps one session instead of logging in per message. Returns ``True``
+    only when every chat received it.
     """
-    owns_client = client is None
-    if client is None:
-        client = await open_client(cfg)
     sent = 0
-    try:
-        for raw_cid in cfg.chat_ids:
-            try:
-                await client.send_message(raw_cid, text, parse_mode="html",
-                                          link_preview=False)
-                print(f"Text message sent to  {raw_cid}", flush=True)
-                sent += 1
-            except tg_errors.FloodWaitError as e:
-                print(f"::error::Flood wait {e.seconds}s on {raw_cid} — skipped")
-                break
-            except Exception as e:
-                print(f"::error::Failed to send text to {raw_cid}: {e}")
-    finally:
-        if owns_client:
-            await client.disconnect()  # type: ignore[misc]
+    for raw_cid in cfg.chat_ids:
+        try:
+            await client.send_message(raw_cid, text, parse_mode="html",
+                                      link_preview=False)
+            print(f"Text message sent to  {raw_cid}", flush=True)
+            sent += 1
+        except tg_errors.FloodWaitError as e:
+            print(f"::error::Flood wait {e.seconds}s on {raw_cid} — skipped")
+            break
+        except Exception as e:
+            print(f"::error::Failed to send text to {raw_cid}: {e}")
     return sent == len(cfg.chat_ids)
 
 
-async def notify(release_data: dict, cfg: TelegramConfig,
-                 github_token: str = "",
-                 include_filter: str = "",
-                 exclude_filter: str = "",
-                 client=None) -> bool:
-    """Send a release notification (with matching assets) to every chat.
+async def notify(release_data: dict, cfg: TelegramConfig, client,
+                 assets: Sequence[dict], github_token: str = "") -> bool:
+    """Send a release notification (with pre-matched assets) to every chat.
+
+    ``assets`` is the already-matched set from the scan phase, so the filter
+    runs once per item instead of once per check and again per delivery.
+    *client* is owned by the caller (see ``telegram_session``).
 
     Files are streamed from GitHub straight to Telegram CDN (no local
     disk write).  The upload is performed **once** and the same
@@ -154,20 +165,7 @@ async def notify(release_data: dict, cfg: TelegramConfig,
                           cfg.notify_channel_url, cfg.notify_project_url,
                           cfg.notify_description, cfg.notify_tag)
 
-    # --- Decide whether this delivery has files at all ---
-    matched_assets = get_matching_assets(release_data,
-                                         include_filter, exclude_filter)
-    if include_filter.strip() and not matched_assets:
-        print(f"::error::No asset in {release_data.get('tag_name', '?')} "
-              f"matched ASSET_INCLUDE={include_filter!r} — treating as a "
-              "delivery failure so the marker is not advanced", flush=True)
-        return False
-
-    # --- Telethon client (reused across the run when the caller passes one) ---
-    owns_client = client is None
-    if client is None:
-        client = await open_client(cfg)
-
+    matched_assets = list(assets)
     all_ok = True
 
     # --- Upload assets once (shared across all chats) ---
@@ -225,13 +223,9 @@ async def notify(release_data: dict, cfg: TelegramConfig,
             else:
                 print(f"::error::Only {len(medias)}/{len(matched_assets)} "
                       f"asset(s) uploaded — will retry on next run", flush=True)
-                if owns_client:
-                    await client.disconnect()  # type: ignore[misc]
                 return False
         except asyncio.TimeoutError:
             print("::error::Asset processing timeout — skipped", flush=True)
-            if owns_client:
-                await client.disconnect()  # type: ignore[misc]
             return False
     # -------------------------------------------------------------------
 
@@ -252,8 +246,6 @@ async def notify(release_data: dict, cfg: TelegramConfig,
                 break
             except Exception as e:
                 print(f"::error::Failed to notify {raw_cid}: {e}")
-        if owns_client:
-            await client.disconnect()  # type: ignore[misc]
         # False -> caller skips persistence and retries on the next run.
         # Contract: True only when *every* chat was notified.
         return sent == len(cfg.chat_ids)
@@ -264,41 +256,36 @@ async def notify(release_data: dict, cfg: TelegramConfig,
     batches = [uploaded_medias[i:i + _ALBUM_MAX]
                for i in range(0, len(uploaded_medias), _ALBUM_MAX)]
 
-    try:
-        for raw_cid in cfg.chat_ids:
-            try:
-                for index, batch in enumerate(batches):
-                    start = index * _ALBUM_MAX
-                    batch_attrs = (file_attrs or [])[start:start + len(batch)]
-                    await _send_batch(
-                        client, raw_cid, batch, batch_attrs,
-                        text if index == 0 else "",
-                    )
-                print(f"Album ({len(batches)} batch(es)) sent to  {raw_cid}",
-                      flush=True)
-
-            except tg_errors.FloodWaitError as e:
-                print(
-                    f"::error::Flood wait {e.seconds}s on {raw_cid}"
-                    " — skipping remaining chats"
+    for raw_cid in cfg.chat_ids:
+        try:
+            for index, batch in enumerate(batches):
+                start = index * _ALBUM_MAX
+                batch_attrs = (file_attrs or [])[start:start + len(batch)]
+                await _send_batch(
+                    client, raw_cid, batch, batch_attrs,
+                    text if index == 0 else "",
                 )
-                all_ok = False
-                break
-            except tg_errors.RPCError as e:
-                print(f"::error::Telegram RPC error for {raw_cid}: {e}")
-                all_ok = False
-                continue
-            except ValueError as e:
-                print(f"::error::Invalid chat ID '{raw_cid}': {e}")
-                all_ok = False
-                continue
-            except Exception as e:
-                print(f"::error::Failed to send to {raw_cid}: {e}")
-                all_ok = False
-                continue
-    finally:
-        if owns_client:
-            await client.disconnect()  # type: ignore[misc]
-            print("Telethon client disconnected")
+            print(f"Album ({len(batches)} batch(es)) sent to  {raw_cid}",
+                  flush=True)
+
+        except tg_errors.FloodWaitError as e:
+            print(
+                f"::error::Flood wait {e.seconds}s on {raw_cid}"
+                " — skipping remaining chats"
+            )
+            all_ok = False
+            break
+        except tg_errors.RPCError as e:
+            print(f"::error::Telegram RPC error for {raw_cid}: {e}")
+            all_ok = False
+            continue
+        except ValueError as e:
+            print(f"::error::Invalid chat ID '{raw_cid}': {e}")
+            all_ok = False
+            continue
+        except Exception as e:
+            print(f"::error::Failed to send to {raw_cid}: {e}")
+            all_ok = False
+            continue
 
     return all_ok
