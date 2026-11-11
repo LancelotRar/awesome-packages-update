@@ -383,11 +383,11 @@ projects:
   - id: windows-terminal
     repo: microsoft/terminal
     strategy: latest
-    asset_include: "Microsoft.WindowsTerminal+x64.zip"
+    asset_include: "WindowsTerminal+x64.zip, WindowsTerminal+.msixbundle"
     asset_exclude: ""
     notify:
       title: "Windows Terminal 新版本发布！"
-      description: "Windows 终端与原始控制台主机"
+      description: "Windows 终端应用"
       group_url: ""
       channel_url: ""
       project_url: "https://github.com/microsoft/terminal"
