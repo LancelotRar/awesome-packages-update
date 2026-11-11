@@ -2,245 +2,245 @@
   "3fui": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-11T09:10:51Z",
+    "last_checked": "2026-11-11T21:48:32Z",
     "last_error": "",
     "marker": "2026-11-07T12:26:10Z"
   },
   "64gram-desktop": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-11T09:02:11Z",
+    "last_checked": "2026-11-11T21:41:58Z",
     "last_error": "",
     "marker": "2026-11-08T07:22:37Z"
   },
   "ainanplayer": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-11T09:00:16Z",
+    "last_checked": "2026-11-11T21:34:54Z",
     "last_error": "",
     "marker": "2026-11-03T14:33:47Z"
   },
   "ant-video": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-11T09:00:16Z",
+    "last_checked": "2026-11-11T21:34:54Z",
     "last_error": "",
     "marker": "2026-11-08T08:14:10Z"
   },
   "bbll": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-11T09:02:11Z",
+    "last_checked": "2026-11-11T21:39:02Z",
     "last_error": "",
     "marker": "2026-06-10T14:57:25Z"
   },
   "bettbox": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-11T09:00:16Z",
+    "last_checked": "2026-11-11T21:34:54Z",
     "last_error": "",
-    "marker": "2026-10-22T07:16:03Z"
+    "marker": "2026-11-11T18:36:35Z"
   },
   "bitwarden-android": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-11T09:02:11Z",
+    "last_checked": "2026-11-11T21:39:02Z",
     "last_error": "",
     "marker": "2026-11-06T18:13:29Z"
   },
   "bitwarden-win": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-11T09:02:11Z",
+    "last_checked": "2026-11-11T21:39:02Z",
     "last_error": "",
     "marker": "2026-11-05T17:02:34Z"
   },
   "clash-verge-rev": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-11T09:02:11Z",
+    "last_checked": "2026-11-11T21:41:58Z",
     "last_error": "",
     "marker": "2026-11-03T10:04:21Z"
   },
   "cmfa": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-11T09:00:16Z",
+    "last_checked": "2026-11-11T21:37:26Z",
     "last_error": "",
     "marker": "2026-11-11T06:52:15Z"
   },
   "defender-remover": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-11T09:02:11Z",
+    "last_checked": "2026-11-11T21:41:58Z",
     "last_error": "",
     "marker": "2026-08-24T12:36:26Z"
   },
   "flclash": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-11T09:02:11Z",
+    "last_checked": "2026-11-11T21:39:02Z",
     "last_error": "",
     "marker": "2026-11-04T07:54:38Z"
   },
   "fongmi-module": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-11T09:00:16Z",
+    "last_checked": "2026-11-11T21:34:54Z",
     "last_error": "",
     "marker": "97619b4e5218230d8c380a8db17cddb5490d5f4df53419c452bbda870a58374e"
   },
   "fongmitv": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-11T09:02:11Z",
+    "last_checked": "2026-11-11T21:39:02Z",
     "last_error": "",
     "marker": "2026-11-01T18:10:16Z"
   },
   "gkd": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-11T09:02:11Z",
+    "last_checked": "2026-11-11T21:39:02Z",
     "last_error": "",
     "marker": "2026-11-06T06:39:43Z"
   },
   "handbrake": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-11T09:02:11Z",
+    "last_checked": "2026-11-11T21:41:58Z",
     "last_error": "",
     "marker": "2026-06-07T19:08:25Z"
   },
   "heu-kms-activator": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-11T09:10:51Z",
+    "last_checked": "2026-11-11T21:48:32Z",
     "last_error": "",
     "marker": "2026-11-05T06:26:59Z"
   },
   "jellyfin-androidtv": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-11T09:02:11Z",
+    "last_checked": "2026-11-11T21:41:58Z",
     "last_error": "",
     "marker": "2026-11-10T13:11:20Z"
   },
   "lenovo-legion-toolkit": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-11T09:02:11Z",
+    "last_checked": "2026-11-11T21:41:58Z",
     "last_error": "",
     "marker": "2026-11-03T22:06:01Z"
   },
   "localsend": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-11T09:10:51Z",
+    "last_checked": "2026-11-11T21:57:02Z",
     "last_error": "",
     "marker": "2026-09-12T03:00:00Z"
   },
   "moonlight": {
     "alerted": false,
-    "failures": 1,
-    "last_checked": "2026-11-11T09:02:11Z",
-    "last_error": "no assets matched",
-    "marker": "2026-11-09T11:57:58Z"
+    "failures": 0,
+    "last_checked": "2026-11-11T21:39:02Z",
+    "last_error": "",
+    "marker": "2026-11-11T15:15:42Z"
   },
   "nagram-desktop": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-11T09:10:51Z",
+    "last_checked": "2026-11-11T21:57:02Z",
     "last_error": "",
     "marker": "2026-11-10T17:04:12Z"
   },
   "notepad3": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-11T09:02:11Z",
+    "last_checked": "2026-11-11T21:40:01Z",
     "last_error": "",
     "marker": "2026-06-02T11:26:58Z"
   },
   "powershell": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-11T09:02:11Z",
+    "last_checked": "2026-11-11T21:41:58Z",
     "last_error": "",
     "marker": "2026-11-10T20:18:47Z"
   },
   "powertoys": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-11T09:02:11Z",
+    "last_checked": "2026-11-11T21:41:58Z",
     "last_error": "",
     "marker": "2026-11-06T09:54:30Z"
   },
   "stranslate": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-11T09:10:51Z",
+    "last_checked": "2026-11-11T21:48:32Z",
     "last_error": "",
     "marker": "2026-09-04T14:14:50Z"
   },
   "sunshine": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-11T09:02:11Z",
+    "last_checked": "2026-11-11T21:40:01Z",
     "last_error": "",
     "marker": "2026-11-04T15:27:32Z"
   },
   "syncthing": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-11T09:02:11Z",
+    "last_checked": "2026-11-11T21:41:58Z",
     "last_error": "",
     "marker": "2026-10-21T06:10:26Z"
   },
   "tailscale-android": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-11T09:02:11Z",
+    "last_checked": "2026-11-11T21:40:01Z",
     "last_error": "",
-    "marker": "2026-11-03T17:35:11Z"
+    "marker": "2026-11-11T18:15:18Z"
   },
   "tubatools": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-11T09:10:51Z",
+    "last_checked": "2026-11-11T21:48:32Z",
     "last_error": "",
-    "marker": "2026-11-02T03:57:12Z"
+    "marker": "2026-11-11T18:40:46Z"
   },
   "v2rayn": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-11T09:02:11Z",
+    "last_checked": "2026-11-11T21:41:58Z",
     "last_error": "",
     "marker": "2026-10-14T06:34:55Z"
   },
   "webhtv": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-11T09:00:16Z",
+    "last_checked": "2026-11-11T21:34:54Z",
     "last_error": "",
     "marker": "2026-09-24T05:06:22Z"
   },
   "windows-terminal": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-11T09:10:51Z",
+    "last_checked": "2026-11-11T21:48:32Z",
     "last_error": "",
     "marker": "2026-11-11T00:24:31Z"
   },
   "winhance": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-11T09:02:11Z",
+    "last_checked": "2026-11-11T21:41:58Z",
     "last_error": "",
     "marker": "2026-06-12T14:11:06Z"
   },
   "winutil": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-11T09:02:11Z",
+    "last_checked": "2026-11-11T21:41:58Z",
     "last_error": "",
     "marker": "2026-11-03T16:28:02Z"
   }
