@@ -130,7 +130,5 @@ scripts/github_api.py                  GitHub API 客户端
 scripts/notifier.py                    Telegram 投递
 scripts/tests/                         单元测试
 docs/adr/                              架构决策记录
-docs/agents/                           agent skill 约定
-docs/progress/                         实施记录
 docs/runbook.md                        运维手册（补投、审计、轮换）
 ```
