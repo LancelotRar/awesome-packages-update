@@ -370,7 +370,7 @@ projects:
   - id: powershell
     repo: PowerShell/PowerShell
     strategy: latest
-    asset_include: "PowerShell+win-x64+.msi"
+    asset_include: "PowerShell+win-x64+.zip,PowerShell+.msixbundle"
     asset_exclude: ""
     notify:
       title: "powershell 新版本发布！"
