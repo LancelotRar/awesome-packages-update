@@ -25,7 +25,6 @@ import asyncio
 import os
 import sys
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from pathlib import Path
 
 from detector import Detection, detect
@@ -41,6 +40,7 @@ from state import (
     record_failure,
     save_state,
 )
+from timestamps import now_iso
 from watchlist import WatchItem, load_watchlist
 
 CHECK_CONCURRENCY = 8
@@ -59,7 +59,7 @@ class Outcome:
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return now_iso()
 
 
 def _short(marker: str) -> str:

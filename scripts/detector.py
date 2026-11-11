@@ -20,6 +20,7 @@ from github_api import (
     fetch_releases,
     get_matching_assets,
 )
+from timestamps import to_beijing_iso
 from watchlist import STRATEGY_LATEST, STRATEGY_TAG, WatchItem
 
 
@@ -51,7 +52,7 @@ def _latest_detection(release: dict) -> Detection:
     """Wrap a release in the detection shape ``latest`` has always used."""
     return Detection(
         release=release,
-        marker=release.get("updated_at", ""),
+        marker=to_beijing_iso(release.get("updated_at", "")),
         asset_count=len(release.get("assets", [])),
     )
 
@@ -129,9 +130,10 @@ def detect(item: WatchItem, token: str = "") -> Detection | None:
             )
 
         # A rolling release keeps its original published_at; show the
-        # newest matched asset date instead.
+        # newest matched asset date instead (in Beijing time, like every
+        # other timestamp this project surfaces).
         display = dict(release)
-        display["published_at"] = (
+        display["published_at"] = to_beijing_iso(
             max((a.get("updated_at", "") for a in assets), default="")
             or release.get("published_at", "")
         )

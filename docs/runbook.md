@@ -25,7 +25,8 @@ print({k:v['marker'] for k,v in list(s.items())[:5]})"
 ```
 
 `marker` 是上次成功投递时的版本指纹；`failures` 是连续失败计数，达到 3 次会向
-`TG_CHAT_ID_ADMIN` 告警。
+`TG_CHAT_ID_ADMIN` 告警。`marker` 与 `last_checked` 里的时间统一是北京时间
+（`+08:00`）；非时间型 marker（`tag` 策略的指纹）保持哈希原样。
 
 ## 补投单个条目
 
@@ -47,7 +48,7 @@ python - <<'PY'
 import json, pathlib
 p = pathlib.Path("data/state.json")
 s = json.loads(p.read_text(encoding="utf-8"))
-s["<id>"]["marker"] = "<release 的 updated_at>"
+s["<id>"]["marker"] = "<release 的 updated_at，北京时间 +08:00>"
 p.write_text(json.dumps(s, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
              encoding="utf-8")
 PY

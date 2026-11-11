@@ -42,6 +42,35 @@ def test_roundtrip_preserves_markers(tmp_path):
     assert marker_of(load_state(path), "webhtv") == "m-1"
 
 
+def test_load_migrates_utc_timestamps_to_beijing(tmp_path):
+    """Legacy ``...Z`` records are rewritten to ``+08:00`` on load."""
+    path = tmp_path / "state.json"
+    path.write_text(json.dumps({
+        "webhtv": {"marker": "2026-09-24T05:06:22Z",
+                   "last_checked": "2026-11-11T09:00:16Z"},
+        "fongmi-module": {"marker": "97619b4e"},
+    }), encoding="utf-8")
+
+    state = load_state(path)
+
+    assert state["webhtv"]["marker"] == "2026-09-24T13:06:22+08:00"
+    assert state["webhtv"]["last_checked"] == "2026-11-11T17:00:16+08:00"
+    # Asset fingerprints are not timestamps and must survive untouched.
+    assert state["fongmi-module"]["marker"] == "97619b4e"
+
+
+def test_load_migration_is_idempotent(tmp_path):
+    """A state file already in Beijing time is not rewritten again."""
+    path = tmp_path / "state.json"
+    path.write_text(json.dumps({
+        "webhtv": {"marker": "2026-09-24T13:06:22+08:00"},
+    }), encoding="utf-8")
+
+    state = load_state(path)
+
+    assert state["webhtv"]["marker"] == "2026-09-24T13:06:22+08:00"
+
+
 def test_delivery_resets_failures_and_alert_flag(tmp_path):
     state = {}
     record_failure(state, "x", "t1", "boom")

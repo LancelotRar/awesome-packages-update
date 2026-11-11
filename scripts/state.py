@@ -1,4 +1,8 @@
-"""Persistent per-watch-item detection state (``data/state.json``)."""
+"""Persistent per-watch-item detection state (``data/state.json``).
+
+Timestamps are stored in Beijing time (``+08:00``); legacy ``...Z`` values
+are migrated on load.
+"""
 
 from __future__ import annotations
 
@@ -7,6 +11,8 @@ import os
 import tempfile
 from pathlib import Path
 from typing import Any
+
+from timestamps import to_beijing_iso
 
 State = dict[str, dict[str, Any]]
 
@@ -23,8 +29,25 @@ def _entry(state: State, project_id: str) -> dict[str, Any]:
     return state.setdefault(project_id, dict(_EMPTY))
 
 
+def _migrate_timestamps(entry: dict[str, Any]) -> None:
+    """Rewrite a legacy UTC timestamp field to Beijing time, in place.
+
+    Older state files stored ``...Z`` values. Normalizing on load keeps the
+    marker comparison exact (no spurious re-delivery) while every record
+    ends up on one offset. Opaque markers such as asset fingerprints pass
+    through untouched.
+    """
+    for name in ("marker", "last_checked"):
+        value = entry.get(name)
+        if isinstance(value, str):
+            entry[name] = to_beijing_iso(value)
+
+
 def load_state(path: str | Path) -> State:
     """Read *path*, returning ``{}`` when it does not exist yet.
+
+    Timestamps are normalized to Beijing time as part of the load, so the
+    in-memory state is always safe to compare and re-save.
 
     A present-but-corrupt file is an error rather than an empty state:
     silently resetting markers would re-send already-delivered releases.
@@ -43,6 +66,7 @@ def load_state(path: str | Path) -> State:
             raise RuntimeError(
                 f"Corrupt state file {path}: entry '{project_id}' must be an object"
             )
+        _migrate_timestamps(entry)
     return data
 
 

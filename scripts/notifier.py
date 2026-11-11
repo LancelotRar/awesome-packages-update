@@ -12,6 +12,7 @@ from telethon.sessions import StringSession
 from telethon.tl.types import DocumentAttributeFilename
 
 from github_api import get_matching_assets, stream_asset
+from timestamps import to_beijing_date
 
 _ALBUM_MAX = 10  # Telegram albums accept 2-10 items
 
@@ -146,7 +147,7 @@ async def notify(release_data: dict, cfg: TelegramConfig,
     """
     # --- build message text ---
     asset_name = release_data.get("name") or release_data["tag_name"]
-    pub_date = release_data["published_at"][:10]
+    pub_date = to_beijing_date(release_data.get("published_at", ""))
     rel_url = release_data["html_url"]
     text = _build_message(asset_name, pub_date, rel_url,
                           cfg.notify_title, cfg.notify_group_url,

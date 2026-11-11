@@ -228,6 +228,21 @@ def test_text_notification_includes_tag():
     assert sent_text.endswith("\n#bettbox")
 
 
+def test_pub_date_uses_beijing_calendar_date():
+    """A release published after 16:00 UTC is dated the next day locally."""
+    # Given a release published at 17:52 UTC (01:52 the next day in UTC+8):
+    release = dict(RELEASE_NO_ASSETS, published_at="2026-11-11T17:52:43Z")
+
+    # When the notification is sent:
+    with _patched_client(None) as client_cls:
+        ok = asyncio.run(notify(release, _text_cfg(), "", "", ""))
+
+    # Then the message shows the Beijing date, not the UTC one.
+    assert ok is True
+    sent_text = client_cls.return_value.send_message.await_args.args[1]
+    assert "发布时间：2026-11-12" in sent_text
+
+
 def test_text_notification_disables_link_preview():
     """send_message must explicitly disable the web link preview."""
     # Given the standard text-notification path:

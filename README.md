@@ -18,6 +18,8 @@
 | `latest` | 最新**稳定版** Release 的 `updated_at`（跳过 draft 与 prerelease） | 常规发版 |
 | `tag` | 指定 tag 下匹配资产的 `(name, size, updated_at)` 指纹 | 长期不换 tag、只原地替换资产的滚动 Release |
 
+项目里所有对外记录和展示的时间都换算成北京时间（`+08:00`）：`state.json` 的 `marker` / `last_checked`，以及 Telegram 通知里的发布时间。GitHub API 返回的 `Z` 时间戳在入库和投递前统一转换；`tag` 策略的指纹仍是原始值的哈希，不受影响。
+
 #### 按 tag 通配选择
 
 一个仓库同时为多条产品线发 Release 时（例如 `bitwarden/clients` 的 `desktop-*`、`cli-*`、`browser-*`、`web-*`），可以在 `latest` 条目上加可选的 `release_tag_include`（非空字符串列表），只跟随其中一系列：
@@ -123,6 +125,7 @@ scripts/run_checks.py                  主流程
 scripts/watchlist.py                   清单加载与校验
 scripts/detector.py                    latest / tag 检测
 scripts/state.py                       data/state.json 原子读写
+scripts/timestamps.py                  北京时间（UTC+8）时间戳工具
 scripts/github_api.py                  GitHub API 客户端
 scripts/notifier.py                    Telegram 投递
 scripts/tests/                         单元测试

@@ -5,7 +5,7 @@ name: check-releases
 
 on:
   schedule:
-    - cron: '30 7 * * *'
+    - cron: '30 7 * * *'  # 每天 07:30（UTC+8）
       timezone: 'Asia/Shanghai'
   workflow_dispatch:
     inputs:
@@ -30,6 +30,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:
+      # 运行环境按北京时间：影响 git commit 时间戳、date 等本地时间输出。
+      # GitHub Actions 日志界面里的时间戳由 GitHub 渲染，始终是 UTC。
+      TZ: Asia/Shanghai
       WATCHLIST: projects.yaml
       STATE_FILE: data/state.json
       # 跟随触发分支: 定时运行在 main, 分支上手动触发则推回该分支,

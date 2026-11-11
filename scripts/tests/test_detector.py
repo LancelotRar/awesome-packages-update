@@ -58,7 +58,7 @@ def test_picks_newest_matching_release_and_counts_its_assets(monkeypatch):
 
     assert result is not None
     assert result.release["tag_name"] == "desktop-v2026.3.0"
-    assert result.marker == "2026-03-02T00:00:00Z"
+    assert result.marker == "2026-03-02T08:00:00+08:00"
     assert result.asset_count == 4
 
 
@@ -146,7 +146,7 @@ def test_without_tag_filter_picks_newest_stable_release(monkeypatch):
 
     assert result is not None
     assert result.release["tag_name"] == "v10"
-    assert result.marker == "2026-03-02T00:00:00Z"
+    assert result.marker == "2026-03-02T08:00:00+08:00"
     assert result.asset_count == 3
 
 

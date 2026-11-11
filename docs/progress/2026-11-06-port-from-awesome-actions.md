@@ -51,6 +51,8 @@
 | flclash | `last-release-flclash.txt` | `2026-10-24T06:18:34Z` |
 | fongmitv | `last-release-fongmi.txt` | `2026-11-01T18:10:16Z` |
 
+> 上表保留迁移当天的原始 UTC 值（`Z`）作为核对证据。2026-11-12 起 `state.json` 的时间字段统一改为北京时间（`+08:00`），旧值在读取时自动换算，见 ADR 0005。
+
 ### flclash 的待投递版本（预期行为，不是错误）
 
 上游 FlClash 最新 Release 的 `updated_at` 是 `2026-11-04T07:54:38Z`，但旧标记停在 `2026-10-24T06:18:34Z`。核对 `gh run list` 后确认：旧 workflow 最后一次成功运行是 `2026-11-03T22:29:26Z`，**早于**这次发版，因此该版本从未投递。
