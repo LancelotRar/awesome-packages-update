@@ -1,11 +1,13 @@
 name: audit-assets
 
 # 每周检查一次：每个 watch item 的资产过滤是否还能命中当前 release。
-# 上游改名/换格式时，这条会在投递前失败，而不是退化成纯文字通知。
+# 上游改名/换格式时，这条会在投递前失败，而不是退化成纯文字通知；
+# 有失败时把具体条目推到 TG_CHAT_ID_ADMIN。
 
 on:
   schedule:
-    - cron: '0 3 * * 1'   # 每周一 03:00 UTC
+    - cron: '0 11 * * 1'  # 每周一 11:00（UTC+8）
+      timezone: 'Asia/Shanghai'
   workflow_dispatch:
 
 permissions:
@@ -29,4 +31,8 @@ jobs:
       - name: Audit asset filters
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN_03BOT }}
+          TG_API_ID: ${{ secrets.TG_API_ID }}
+          TG_API_HASH: ${{ secrets.TG_API_HASH }}
+          TG_CHAT_ID_ADMIN: ${{ secrets.TG_CHAT_ID_ADMIN }}
         run: python3 scripts/audit_assets.py

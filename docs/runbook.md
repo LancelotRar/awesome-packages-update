@@ -63,8 +63,11 @@ git add data/state.json && git commit -m "chore: 重置 <id> 标记" && git push
 GITHUB_TOKEN=$(gh auth token) python scripts/audit_assets.py
 ```
 
-输出里每条会给出当前 release 与命中数；`::error::` 表示零命中。同样的检查每周一
-在 `audit-assets` workflow 里自动跑一次。
+输出里每条会给出当前 release 与命中数；`::error::` 表示零命中。零命中或检测失败
+时，脚本会把「哪几个条目、哪个过滤式」推到 `TG_CHAT_ID_ADMIN`，同时 workflow
+变红。同样的检查每周一 11:00（UTC+8）在 `audit-assets` workflow 里自动跑一次。
+本地跑没配 `TG_BOT_TOKEN` / `TG_API_ID` / `TG_API_HASH` / `TG_CHAT_ID_ADMIN`
+时只打印日志，不会发消息。
 
 ## 轮换 Telegram 凭据
 
