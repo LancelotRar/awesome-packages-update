@@ -8,11 +8,15 @@ import urllib.parse
 import urllib.request
 from typing import Any
 
+from logs import logger
+
 _GITHUB_API = "https://api.github.com"
 _MAX_ATTEMPTS = 3
 # Rate-limit waits come from response hints (Retry-After / X-RateLimit-Reset)
 # that can exceed a CI job's patience — never sleep longer than this.
 _MAX_RATELIMIT_WAIT = 120
+
+log = logger("github_api")
 
 
 class _HttpError(RuntimeError):
@@ -113,18 +117,22 @@ def _fetch_bytes(req: urllib.request.Request, timeout: int, what: str) -> bytes:
                 hint = _rate_limit_wait(e)
                 wait = min(hint if hint is not None else 2**attempt,
                            _MAX_RATELIMIT_WAIT)
-                kind = " rate limited"
+                kind = "rate_limited"
             elif e.code >= 500:
                 wait = 2**attempt
+                kind = "server_error"
             if wait is None or attempt >= _MAX_ATTEMPTS:
                 raise _HttpError(e.code, e.reason) from e
-            print(f"GitHub API HTTP {e.code}{kind} "
-                  f"(attempt {attempt}/{_MAX_ATTEMPTS}), retry in {wait}s …")
+            log.warning("github_retry", kind=kind, status=e.code,
+                        attempt=attempt, max_attempts=_MAX_ATTEMPTS,
+                        wait_seconds=wait, what=what)
             time.sleep(wait)
         except OSError as e:
             if attempt < _MAX_ATTEMPTS:
                 sleep = 2**attempt
-                print(f"Connection error (attempt {attempt}/{_MAX_ATTEMPTS}), retry in {sleep}s …")
+                log.warning("github_connection_retry", attempt=attempt,
+                            max_attempts=_MAX_ATTEMPTS, wait_seconds=sleep,
+                            what=what)
                 time.sleep(sleep)
                 continue
             raise RuntimeError(f"Failed to fetch {what}: {e}") from e
@@ -251,19 +259,16 @@ def get_matching_assets(release_data: dict,
                if a["size"] > 0 and _asset_matches(a["name"], include_rules, exclude_rules)]
 
     # -- logging --
+    total = len(assets)
     if include_filter or exclude_filter:
-        out = len(matched)
-        total = len(assets)
-        skipped = total - out
-        bits = []
+        fields: dict[str, Any] = {"matched": len(matched), "total": total}
         if include_filter:
-            bits.append(f"inc=[{include_filter}]")
+            fields["include"] = include_filter
         if exclude_filter:
-            bits.append(f"exc=[{exclude_filter}]")
-        print(f"Asset filter: {' '.join(bits)} -> {out}/{total} matched"
-              + (f" (skipped {skipped})" if skipped else ""))
+            fields["exclude"] = exclude_filter
+        log.info("asset_filter", **fields)
     else:
-        print(f"No filter — including all {len(assets)} assets")
+        log.debug("asset_filter_disabled", total=total)
 
     return matched
 

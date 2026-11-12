@@ -115,6 +115,27 @@ GITHUB_TOKEN=$(gh auth token) python scripts/audit_assets.py
 
 本地运行同样需要 `TG_BOT_TOKEN` / `TG_CHAT_ID` / `TG_API_ID` / `TG_API_HASH`；仅做检测时可以只设 `GITHUB_TOKEN`（可选）。
 
+## 日志
+
+每行是一条事件，而不是一句散文：
+
+```
+2026-11-13T07:30:02.517+08:00 INFO  [run_checks gh-19372648512-1] update_detected item=bettbox repo=o/bettbox previous=2026-11-10T07:00:00+08:00 marker=2026-11-12T01:52:43+08:00 assets=3
+```
+
+- `[<entry_point> <run_id>]` 标明这条日志由哪个入口、哪次运行产生；`run_id` 取自
+  `GITHUB_RUN_ID` / `GITHUB_RUN_ATTEMPT`（本地运行为 `local-xxxxxxxx`）。并发扫描期间
+  每行还带 `item=<id>`，`github_api` / `notifier` 等子模块继承同一上下文。
+- `WARNING` / `ERROR` 自动转成 Actions 注解（`::warning title=<event>::…`、
+  `::error title=<event>::…`），不需要在消息里手写。
+- `LOG_LEVEL=DEBUG` 打开扫描与重试细节；`LOG_FORMAT=json` 每行输出一个 JSON 对象
+  （JSON 模式不输出注解，避免破坏 JSON 流）；`LOG_ANNOTATIONS=0` 可在 Actions 里
+  关掉注解。
+- 字段名形如 `*token*`、`*secret*`、`*password*`、`*api_hash*` 的值会被替换成 `***`。
+
+这些字段要回答三个问题：这次运行投递、失败、跳过各多少；某个条目为什么没投出去；
+GitHub、Telegram 是否在退避重试。新增日志时优先挂到已有事件上，不要新造措辞。
+
 ## 目录
 
 ```
@@ -122,6 +143,7 @@ GITHUB_TOKEN=$(gh auth token) python scripts/audit_assets.py
 projects.yaml                          监控清单
 data/state.json                        持久化标记
 scripts/run_checks.py                  主流程
+scripts/logs.py                        结构化日志（事件、运行上下文、Actions 注解）
 scripts/scan.py                        检测 + 资产匹配（runner 与 audit 共用）
 scripts/env.py                         环境变量解析（chat id、必填项）
 scripts/watchlist.py                   清单加载与校验

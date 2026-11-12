@@ -14,9 +14,13 @@ from telethon.sessions import StringSession
 from telethon.tl.types import DocumentAttributeFilename
 
 from github_api import stream_asset
+from logs import logger
 from timestamps import to_beijing_date
 
 _ALBUM_MAX = 10  # Telegram albums accept 2-10 items
+_UPLOAD_TIMEOUT = 3600  # seconds for the whole asset fetch/upload phase
+
+log = logger("notifier")
 
 
 @dataclass
@@ -73,7 +77,7 @@ async def open_client(cfg: TelegramConfig) -> TelegramClient:
     ``__aenter__`` calls ``self.start()`` with *no* arguments, which
     would fall back to interactive phone/token input (impossible in CI).
     """
-    print("Starting Telethon client …")
+    log.debug("telegram_client_starting")
     client = TelegramClient(
         StringSession(), cfg.api_id, cfg.api_hash,
         connection_retries=3,
@@ -84,7 +88,7 @@ async def open_client(cfg: TelegramConfig) -> TelegramClient:
         raise RuntimeError(
             f"Telegram auth failed — check TG_API_ID / TG_API_HASH / TG_BOT_TOKEN: {e}"
         ) from e
-    print("Telethon client started")
+    log.debug("telegram_client_started")
     return client
 
 
@@ -132,13 +136,13 @@ async def send_text(text: str, cfg: TelegramConfig, client) -> bool:
         try:
             await client.send_message(raw_cid, text, parse_mode="html",
                                       link_preview=False)
-            print(f"Text message sent to  {raw_cid}", flush=True)
+            log.info("text_sent", chat=raw_cid)
             sent += 1
         except tg_errors.FloodWaitError as e:
-            print(f"::error::Flood wait {e.seconds}s on {raw_cid} — skipped")
+            log.error("flood_wait", chat=raw_cid, seconds=e.seconds)
             break
         except Exception as e:
-            print(f"::error::Failed to send text to {raw_cid}: {e}")
+            log.error("text_send_failed", chat=raw_cid, error=str(e))
     return sent == len(cfg.chat_ids)
 
 
@@ -173,14 +177,13 @@ async def notify(release_data: dict, cfg: TelegramConfig, client,
     file_attrs: list | None = None
 
     if matched_assets:
-        print(f"Fetching & uploading {len(matched_assets)} asset(s) …", flush=True)
+        log.info("assets_upload_started", count=len(matched_assets))
 
         async def _fetch_and_upload(asset: dict):
             name = asset["name"]
             size = asset["size"]
-            size_mb = round(size / 1_048_576, 1)
 
-            print(f"Fetching  {name}  ({size_mb} MB) …", flush=True)
+            log.info("asset_fetch_started", name=name, size_bytes=size)
             try:
                 resp = await asyncio.to_thread(stream_asset, asset, github_token)
                 data = await asyncio.to_thread(resp.read)
@@ -192,24 +195,23 @@ async def notify(release_data: dict, cfg: TelegramConfig, client,
                     if pct - last_pct[0] < 10 and sent != total:
                         return
                     last_pct[0] = pct
-                    sent_mb = sent / 1_048_576
-                    total_mb = total / 1_048_576
-                    print(f"  Upload: {sent_mb:.1f}/{total_mb:.1f} MB ({pct}%)", flush=True)
+                    log.info("asset_upload_progress", name=name, sent_bytes=sent,
+                             total_bytes=total, percent=pct)
 
                 uploaded = await client.upload_file(
                     io.BytesIO(data), file_name=name, file_size=size,
                     progress_callback=_progress,
                 )
-                print(f"Uploaded  {name}", flush=True)
+                log.info("asset_uploaded", name=name, size_bytes=size)
                 return uploaded, [DocumentAttributeFilename(name)]
             except Exception as e:
-                print(f"::warning::Failed to process {name}: {e}")
+                log.warning("asset_upload_failed", name=name, error=str(e))
                 return None, None
 
         try:
             results = await asyncio.wait_for(
                 asyncio.gather(*[_fetch_and_upload(a) for a in matched_assets]),
-                timeout=3600,
+                timeout=_UPLOAD_TIMEOUT,
             )
             medias = [r[0] for r in results if r[0] is not None]
             attrs = [r[1] for r in results if r[1] is not None]
@@ -219,33 +221,33 @@ async def notify(release_data: dict, cfg: TelegramConfig, client,
                 # silently losing the failed asset(s).
                 uploaded_medias = medias
                 file_attrs = attrs
-                print("All assets ready, sending as album …", flush=True)
+                log.info("album_ready", count=len(medias))
             else:
-                print(f"::error::Only {len(medias)}/{len(matched_assets)} "
-                      f"asset(s) uploaded — will retry on next run", flush=True)
+                log.error("assets_incomplete", uploaded=len(medias),
+                          expected=len(matched_assets))
                 return False
         except asyncio.TimeoutError:
-            print("::error::Asset processing timeout — skipped", flush=True)
+            log.error("asset_upload_timeout", timeout_seconds=_UPLOAD_TIMEOUT)
             return False
     # -------------------------------------------------------------------
 
     if not uploaded_medias:
         # Only reachable when there were no matching assets at all;
         # any upload failure already returned False above.
-        print("No matching assets — sending text notification")
+        log.info("text_only_notification", chats=len(cfg.chat_ids))
         sent = 0
         for raw_cid in cfg.chat_ids:
             try:
                 # link_preview=False: 消息含多个 URL, 关闭链接预览避免大段展开
                 await client.send_message(raw_cid, text, parse_mode="html",
                                           link_preview=False)
-                print(f"Text notification sent to  {raw_cid}", flush=True)
+                log.info("text_sent", chat=raw_cid)
                 sent += 1
             except tg_errors.FloodWaitError as e:
-                print(f"::error::Flood wait {e.seconds}s on {raw_cid} — skipped")
+                log.error("flood_wait", chat=raw_cid, seconds=e.seconds)
                 break
             except Exception as e:
-                print(f"::error::Failed to notify {raw_cid}: {e}")
+                log.error("text_send_failed", chat=raw_cid, error=str(e))
         # False -> caller skips persistence and retries on the next run.
         # Contract: True only when *every* chat was notified.
         return sent == len(cfg.chat_ids)
@@ -265,26 +267,23 @@ async def notify(release_data: dict, cfg: TelegramConfig, client,
                     client, raw_cid, batch, batch_attrs,
                     text if index == 0 else "",
                 )
-            print(f"Album ({len(batches)} batch(es)) sent to  {raw_cid}",
-                  flush=True)
+            log.info("album_sent", chat=raw_cid, batches=len(batches),
+                     files=len(uploaded_medias))
 
         except tg_errors.FloodWaitError as e:
-            print(
-                f"::error::Flood wait {e.seconds}s on {raw_cid}"
-                " — skipping remaining chats"
-            )
+            log.error("flood_wait", chat=raw_cid, seconds=e.seconds)
             all_ok = False
             break
         except tg_errors.RPCError as e:
-            print(f"::error::Telegram RPC error for {raw_cid}: {e}")
+            log.error("telegram_rpc_error", chat=raw_cid, error=str(e))
             all_ok = False
             continue
         except ValueError as e:
-            print(f"::error::Invalid chat ID '{raw_cid}': {e}")
+            log.error("invalid_chat_id", chat=raw_cid, error=str(e))
             all_ok = False
             continue
         except Exception as e:
-            print(f"::error::Failed to send to {raw_cid}: {e}")
+            log.error("album_send_failed", chat=raw_cid, error=str(e))
             all_ok = False
             continue
 

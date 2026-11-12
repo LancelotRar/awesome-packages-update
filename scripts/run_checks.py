@@ -24,9 +24,11 @@ from __future__ import annotations
 import asyncio
 import os
 import sys
+import time
 from pathlib import Path
 
 from env import chat_ids, required
+from logs import configure, context, logger
 from scan import ScanResult, scan_item
 from notifier import TelegramConfig, notify, open_client, send_text
 from state import (
@@ -47,6 +49,8 @@ FAILURE_ALERT_THRESHOLD = 3
 
 _HERE = Path(__file__).resolve().parent
 
+log = logger("run_checks")
+
 
 def _now() -> str:
     return now_iso()
@@ -60,7 +64,7 @@ def _parse_chat_ids(raw: str, var: str) -> list[int]:
     try:
         return chat_ids(raw, var)
     except RuntimeError as e:
-        print(f"::error::{e}")
+        log.error("config_error", variable=var, error=str(e))
         sys.exit(1)
 
 
@@ -68,7 +72,7 @@ def _require_env(var: str) -> str:
     try:
         return required(var)
     except RuntimeError as e:
-        print(f"::error::{e}")
+        log.error("config_error", variable=var, error=str(e))
         sys.exit(1)
 
 
@@ -110,8 +114,12 @@ async def _scan_all(items: list[WatchItem], token: str) -> list[ScanResult]:
     sem = asyncio.Semaphore(CHECK_CONCURRENCY)
 
     async def one(item: WatchItem) -> ScanResult:
-        async with sem:
-            return await asyncio.to_thread(scan_item, item, token)
+        # Bound to this task's context, so logs from ``scan_item`` and the
+        # GitHub client carry the item they belong to.
+        with context(item=item.id):
+            async with sem:
+                log.debug("scan_started", repo=item.repo)
+                return await asyncio.to_thread(scan_item, item, token)
 
     return list(await asyncio.gather(*(one(item) for item in items)))
 
@@ -140,6 +148,8 @@ def _alert_text(item: WatchItem, failures: int, last_error: str) -> str:
 
 
 async def main() -> int:
+    configure("run_checks")
+    started = time.monotonic()
     watchlist_path = Path(os.environ.get("WATCHLIST") or _HERE.parent / "projects.yaml")
     state_path = Path(os.environ.get("STATE_FILE") or _HERE.parent / "data" / "state.json")
 
@@ -148,7 +158,7 @@ async def main() -> int:
                         (os.environ.get("PROJECT") or "all").strip())
         state = load_state(state_path)
     except RuntimeError as e:
-        print(f"::error::{e}")
+        log.error("config_error", error=str(e))
         return 1
 
     active = [item for item in items if item.enabled]
@@ -159,8 +169,7 @@ async def main() -> int:
     targets = (_parse_chat_ids(_require_env("TG_CHAT_ID"), "TG_CHAT_ID")
                if active else [])
 
-    print(f"Checking {len(active)} watch item(s), skipping {len(skipped)} "
-          f"disabled; force={force}")
+    log.info("run_started", items=len(active), skipped=len(skipped), force=force)
 
     scans = await _scan_all(active, token)
 
@@ -174,65 +183,68 @@ async def main() -> int:
         item = result.item
         now = _now()
 
-        if result.error:
-            print(f"::error::{item.id}: {result.error}", flush=True)
-            record_failure(state, item.id, now, result.error)
-            failed.append(item.id)
-            row_by_id[item.id] = (item.id, "❌ detection", result.error)
-            continue
+        with context(item=item.id):
+            if result.error:
+                log.error("detection_failed", repo=item.repo, error=result.error)
+                record_failure(state, item.id, now, result.error)
+                failed.append(item.id)
+                row_by_id[item.id] = (item.id, "❌ detection", result.error)
+                continue
 
-        detection = result.detection
-        if detection is None:
-            print(f"{item.id}: no releases yet — nothing to do")
-            mark_healthy(state, item.id, now)
-            row_by_id[item.id] = (item.id, "➖ no releases", "")
-            continue
+            detection = result.detection
+            if detection is None:
+                log.info("no_releases", repo=item.repo)
+                mark_healthy(state, item.id, now)
+                row_by_id[item.id] = (item.id, "➖ no releases", "")
+                continue
 
-        previous = marker_of(state, item.id)
-        if not force and detection.marker == previous:
-            print(f"{item.id}: unchanged ({_short(detection.marker)})")
-            mark_healthy(state, item.id, now)
-            row_by_id[item.id] = (item.id, "➖ unchanged", _short(detection.marker))
-            continue
+            previous = marker_of(state, item.id)
+            if not force and detection.marker == previous:
+                log.info("unchanged", repo=item.repo, marker=detection.marker)
+                mark_healthy(state, item.id, now)
+                row_by_id[item.id] = (item.id, "➖ unchanged", _short(detection.marker))
+                continue
 
-        print(f"{item.id}: update detected "
-              f"({_short(previous)} -> {_short(detection.marker)}), "
-              f"assets={detection.asset_count}", flush=True)
+            log.info("update_detected", repo=item.repo, previous=previous,
+                     marker=detection.marker, assets=detection.asset_count)
 
-        if result.problem:
-            record_failure(state, item.id, now, "no assets matched")
-            failed.append(item.id)
-            row_by_id[item.id] = (item.id, "❌ no assets", item.asset_include)
-            continue
+            if result.problem:
+                log.error("assets_unmatched", repo=item.repo,
+                          include=item.asset_include)
+                record_failure(state, item.id, now, "no assets matched")
+                failed.append(item.id)
+                row_by_id[item.id] = (item.id, "❌ no assets", item.asset_include)
+                continue
 
-        error = "delivery failed"
-        try:
-            if client is None and not client_error:
-                try:
-                    client = await open_client(_credentials(targets))
-                except Exception as e:  # one failure must not retry per item
-                    client_error = str(e)
-                    print(f"::error::Telegram client unavailable: {e}")
-            if client is None:
-                raise RuntimeError(client_error or "Telegram client unavailable")
-            ok = await notify(detection.release, _telegram(item, targets),
-                              client, result.matched, token)
-        except Exception as e:  # delivery errors are per-item, not fatal
-            ok = False
-            error = str(e)
-            print(f"::error::{item.id}: {e}", flush=True)
+            error = "delivery failed"
+            try:
+                if client is None and not client_error:
+                    try:
+                        client = await open_client(_credentials(targets))
+                    except Exception as e:  # one failure must not retry per item
+                        client_error = str(e)
+                        log.error("telegram_client_unavailable", error=str(e))
+                if client is None:
+                    raise RuntimeError(client_error or "Telegram client unavailable")
+                ok = await notify(detection.release, _telegram(item, targets),
+                                  client, result.matched, token)
+            except Exception as e:  # delivery errors are per-item, not fatal
+                ok = False
+                error = str(e)
+                log.error("delivery_failed", repo=item.repo, error=str(e))
 
-        if ok:
-            record_delivery(state, item.id, detection.marker, now)
-            delivered.append(item.id)
-            row_by_id[item.id] = (item.id, "✅ delivered", _short(detection.marker))
-        else:
-            record_failure(state, item.id, now, error)
-            failed.append(item.id)
-            row_by_id[item.id] = (item.id, "❌ delivery", error)
+            if ok:
+                record_delivery(state, item.id, detection.marker, now)
+                delivered.append(item.id)
+                row_by_id[item.id] = (item.id, "✅ delivered", _short(detection.marker))
+            else:
+                record_failure(state, item.id, now, error)
+                failed.append(item.id)
+                row_by_id[item.id] = (item.id, "❌ delivery", error)
 
     # Persist before alerting so a crash during alerts cannot lose markers.
     save_state(state_path, state)
+    log.debug("state_saved", path=str(state_path))
 
     rows = [row_by_id.get(item.id, (item.id, "⏭ disabled", ""))
             for item in items]
@@ -247,36 +259,39 @@ async def main() -> int:
             entry = state[item.id]
             text = _alert_text(item, int(entry.get("failures", 0)),
                                str(entry.get("last_error", "")))
-            try:
-                if client is None and not client_error:
-                    try:
-                        client = await open_client(_credentials(admin_ids))
-                    except Exception as e:
-                        client_error = str(e)
-                        print(f"::error::Telegram client unavailable: {e}")
-                if client is None:
-                    raise RuntimeError(client_error or "client unavailable")
-                if await send_text(text, _telegram(item, admin_ids), client):
-                    mark_alerted(state, item.id)
-                    alerted = True
-            except Exception as e:
-                print(f"::error::Admin alert failed for {item.id}: {e}")
+            with context(item=item.id):
+                try:
+                    if client is None and not client_error:
+                        try:
+                            client = await open_client(_credentials(admin_ids))
+                        except Exception as e:
+                            client_error = str(e)
+                            log.error("telegram_client_unavailable", error=str(e))
+                    if client is None:
+                        raise RuntimeError(client_error or "client unavailable")
+                    if await send_text(text, _telegram(item, admin_ids), client):
+                        mark_alerted(state, item.id)
+                        alerted = True
+                        log.info("admin_alert_sent")
+                except Exception as e:
+                    log.error("admin_alert_failed", error=str(e))
         if alerted:
             save_state(state_path, state)
     else:
         pending = [i.id for i in active
                    if needs_alert(state, i.id, FAILURE_ALERT_THRESHOLD)]
         if pending:
-            print("::warning::Failure alerts pending but TG_CHAT_ID_ADMIN "
-                  f"is unset: {', '.join(pending)}")
+            log.warning("admin_chat_unset", pending=",".join(pending),
+                        threshold=FAILURE_ALERT_THRESHOLD)
 
     if client is not None:
         await client.disconnect()
 
     _write_summary(rows)
     unchanged = len(active) - len(delivered) - len(failed)
-    print(f"Done: delivered={len(delivered)} failed={len(failed)} "
-          f"unchanged={unchanged} skipped={len(skipped)}")
+    log.info("run_finished", delivered=len(delivered), failed=len(failed),
+             unchanged=unchanged, skipped=len(skipped),
+             duration_ms=round((time.monotonic() - started) * 1000))
 
     return 1 if failed else 0
 

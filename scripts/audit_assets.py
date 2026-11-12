@@ -22,11 +22,13 @@ from __future__ import annotations
 import asyncio
 import os
 import sys
+import time
 from html import escape
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from env import chat_ids as parse_chat_ids
+from logs import configure, context, logger
 from scan import scan_item
 from watchlist import load_watchlist
 
@@ -34,6 +36,8 @@ if TYPE_CHECKING:
     from notifier import TelegramConfig
 
 _HERE = Path(__file__).resolve().parent
+
+log = logger("audit_assets")
 
 # Telegram caps a message at 4096 characters; a broad upstream rename could
 # break many items at once, so the report lists at most this many.
@@ -111,56 +115,61 @@ def _notify_failure(text: str) -> None:
     missing = [name for name in ("TG_BOT_TOKEN", "TG_API_ID", "TG_API_HASH")
                if not os.environ.get(name, "").strip()]
     if not chat_raw or missing:
-        print("::warning::Telegram failure report skipped — missing "
-              f"{'TG_CHAT_ID_ADMIN' if not chat_raw else ', '.join(missing)}")
+        log.warning("telegram_report_skipped",
+                    missing="TG_CHAT_ID_ADMIN" if not chat_raw else ",".join(missing))
         return
     try:
         ids = parse_chat_ids(chat_raw, "TG_CHAT_ID_ADMIN")
         sent = _send([text], ids)
     except Exception as e:  # a failed report must never mask the audit result
-        print(f"::warning::Telegram failure report failed: {e}")
+        log.warning("telegram_report_failed", error=str(e))
         return
     if sent:
-        print(f"Failure report sent to {len(ids)} chat(s)", flush=True)
+        log.info("telegram_report_sent", chats=len(ids))
     else:
-        print("::warning::Telegram failure report was not delivered to "
-              "every chat")
+        log.warning("telegram_report_partial", chats=len(ids))
 
 
 def main() -> int:
+    configure("audit_assets")
+    started = time.monotonic()
     watchlist = Path(os.environ.get("WATCHLIST") or _HERE.parent / "projects.yaml")
     token = os.environ.get("GITHUB_TOKEN", "")
 
-    items = [item for item in load_watchlist(watchlist) if item.enabled]
+    try:
+        items = [item for item in load_watchlist(watchlist) if item.enabled]
+    except RuntimeError as e:
+        log.error("config_error", error=str(e))
+        return 1
     problems: list[tuple[str, str]] = []
 
     for item in items:
-        result = scan_item(item, token)
-        if result.error:
-            print(f"::error::{item.id}: detection failed: {result.error}",
-                  flush=True)
-            problems.append((item.id, f"检测失败：{result.error}"))
-            continue
+        with context(item=item.id):
+            result = scan_item(item, token)
+            if result.error:
+                log.error("detection_failed", repo=item.repo, error=result.error)
+                problems.append((item.id, f"检测失败：{result.error}"))
+                continue
 
-        if result.detection is None:
-            print(f"::warning::{item.id}: no releases yet", flush=True)
-            continue
+            if result.detection is None:
+                log.warning("no_releases", repo=item.repo)
+                continue
 
-        if result.problem:
-            print(f"::error::{item.id}: {result.tag} — 0 assets matched "
-                  f"{item.asset_include!r}", flush=True)
-            problems.append((item.id, result.problem))
-            continue
+            if result.problem:
+                log.error("assets_unmatched", repo=item.repo, tag=result.tag,
+                          include=item.asset_include)
+                problems.append((item.id, result.problem))
+                continue
 
-        if not result.asset_count:
-            print(f"::warning::{item.id}: {result.tag} has no assets yet",
-                  flush=True)
-            continue
+            if not result.asset_count:
+                log.warning("no_assets", repo=item.repo, tag=result.tag)
+                continue
 
-        print(f"{item.id}: {result.tag} — {len(result.matched)} asset(s)",
-              flush=True)
+            log.info("assets_matched", repo=item.repo, tag=result.tag,
+                     count=len(result.matched))
 
-    print(f"Audited {len(items)} item(s), {len(problems)} problem(s)")
+    log.info("audit_finished", items=len(items), problems=len(problems),
+             duration_ms=round((time.monotonic() - started) * 1000))
     if problems:
         _notify_failure(_summary(problems, len(items)))
     return 1 if problems else 0

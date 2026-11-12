@@ -9,12 +9,22 @@
 gh run list --workflow check-releases.yml --limit 5 \
   --json databaseId,event,status,conclusion,createdAt
 
-# 某次的结论行
-gh run view <run-id> --log | grep -E "Done: delivered|::error::"
+# 某次的结论行与失败项
+gh run view <run-id> --log | grep -E "run_finished|::error::"
 ```
 
 `event=schedule` 是定时触发，`workflow_dispatch` 是手动。定时运行会被 GitHub
 排队，晚几十分钟到数小时都可能，不算失败。
+
+每行日志的格式是 `时间 级别 [入口 run_id] 事件 字段=值`。`run_id` 由 GitHub 运行 ID
+与 attempt 拼成（`gh-<run-id>-<attempt>`），可以据此只取某一次运行：
+
+```bash
+gh run view <run-id> --log | grep "gh-<run-id>"
+```
+
+需要扫描与重试细节时加 `LOG_LEVEL=DEBUG`；需要机器解析时用 `LOG_FORMAT=json`
+（每行一个 JSON 对象，此时不输出 Actions 注解）。
 
 ## 查看当前标记
 
@@ -74,11 +84,12 @@ git add data/state.json && git commit -m "chore: 重置 <id> 标记" && git push
 GITHUB_TOKEN=$(gh auth token) python scripts/audit_assets.py
 ```
 
-输出里每条会给出当前 release 与命中数；`::error::` 表示零命中。零命中或检测失败
-时，脚本会把「哪几个条目、哪个过滤式」推到 `TG_CHAT_ID_ADMIN`，同时 workflow
-变红。同样的检查每周一 11:00（UTC+8）在 `audit-assets` workflow 里自动跑一次。
-本地跑没配 `TG_BOT_TOKEN` / `TG_API_ID` / `TG_API_HASH` / `TG_CHAT_ID_ADMIN`
-时只打印日志，不会发消息。
+输出里每条会给出当前 release 与命中数；`::error::` 表示零命中（事件
+`assets_unmatched`）或检测失败（事件 `detection_failed`）。零命中或检测失败时，脚本会
+把「哪几个条目、哪个过滤式」推到 `TG_CHAT_ID_ADMIN`，同时 workflow 变红。同样的检查
+每周一 11:00（UTC+8）在 `audit-assets` workflow 里自动跑一次。本地跑没配
+`TG_BOT_TOKEN` / `TG_API_ID` / `TG_API_HASH` / `TG_CHAT_ID_ADMIN` 时只打印日志，不会
+发消息。
 
 ## 轮换 Telegram 凭据
 
