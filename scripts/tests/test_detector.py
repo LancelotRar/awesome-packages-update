@@ -24,13 +24,16 @@ def _item(*patterns: str) -> WatchItem:
 
 
 def _release(tag: str, published: str, *, prerelease: bool = False,
-             updated: str = "", assets: int = 0) -> dict:
+             updated: str = "", assets: int = 0,
+             asset_updated: str = "") -> dict:
+    stamp = updated or published
     return {
         "tag_name": tag,
         "published_at": published,
-        "updated_at": updated or published,
+        "updated_at": stamp,
         "prerelease": prerelease,
-        "assets": [{"name": f"a{i}.exe", "size": 1, "updated_at": updated or published}
+        "assets": [{"name": f"a{i}.exe", "size": 1,
+                    "updated_at": asset_updated or stamp}
                    for i in range(assets)],
     }
 
@@ -58,7 +61,8 @@ def test_picks_newest_matching_release_and_counts_its_assets(monkeypatch):
 
     assert result is not None
     assert result.release["tag_name"] == "desktop-v2026.3.0"
-    assert result.marker == "2026-03-02T08:00:00+08:00"
+    assert result.marker == ("desktop-v2026.3.0@"
+                             + detector.asset_fingerprint(result.release["assets"]))
     assert result.asset_count == 4
 
 
@@ -146,7 +150,8 @@ def test_without_tag_filter_picks_newest_stable_release(monkeypatch):
 
     assert result is not None
     assert result.release["tag_name"] == "v10"
-    assert result.marker == "2026-03-02T08:00:00+08:00"
+    assert result.marker == ("v10@"
+                             + detector.asset_fingerprint(result.release["assets"]))
     assert result.asset_count == 3
 
 
@@ -176,3 +181,68 @@ def test_only_prereleases_raises(monkeypatch):
     with pytest.raises(RuntimeError, match="No stable release"):
         detector.detect(WatchItem(id="plain", repo="o/plain",
                                   strategy=STRATEGY_LATEST))
+
+
+def _latest_marker(monkeypatch, item, release) -> str:
+    _patch(monkeypatch, [release], release)
+    result = detector.detect(item)
+    assert result is not None
+    return result.marker
+
+
+def test_latest_marker_ignores_release_metadata_edits(monkeypatch):
+    """Editing a release bumps updated_at but must not re-notify the version."""
+    item = WatchItem(id="plain", repo="o/plain", strategy=STRATEGY_LATEST)
+
+    before = _latest_marker(monkeypatch, item, _release(
+        "v1", "2026-01-01T00:00:00Z", updated="2026-01-02T00:00:00Z",
+        assets=3, asset_updated="2026-01-01T00:00:00Z"))
+    after = _latest_marker(monkeypatch, item, _release(
+        "v1", "2026-01-01T00:00:00Z", updated="2026-01-09T00:00:00Z",
+        assets=3, asset_updated="2026-01-01T00:00:00Z"))
+
+    assert before == after
+
+
+def test_latest_marker_changes_when_a_matched_asset_is_replaced(monkeypatch):
+    item = WatchItem(id="plain", repo="o/plain", strategy=STRATEGY_LATEST)
+
+    before = _latest_marker(monkeypatch, item,
+                            _release("v1", "2026-01-01T00:00:00Z", assets=2))
+    after = _latest_marker(monkeypatch, item, _release(
+        "v1", "2026-01-01T00:00:00Z", assets=2,
+        asset_updated="2026-01-02T00:00:00Z"))
+
+    assert before != after
+
+
+def test_latest_marker_ignores_assets_the_filter_rejects(monkeypatch):
+    item = WatchItem(id="plain", repo="o/plain", strategy=STRATEGY_LATEST,
+                     asset_include=".exe")
+    release = {
+        "tag_name": "v1",
+        "published_at": "2026-01-01T00:00:00Z",
+        "updated_at": "2026-01-01T00:00:00Z",
+        "assets": [
+            {"name": "a.exe", "size": 1, "updated_at": "2026-01-01T00:00:00Z"},
+            {"name": "a.dmg", "size": 1, "updated_at": "2026-01-01T00:00:00Z"},
+        ],
+    }
+
+    before = _latest_marker(monkeypatch, item, release)
+    release["assets"][1]["size"] = 999
+    after = _latest_marker(monkeypatch, item, release)
+
+    assert before == after
+
+
+def test_new_tag_changes_the_marker(monkeypatch):
+    item = WatchItem(id="plain", repo="o/plain", strategy=STRATEGY_LATEST)
+
+    before = _latest_marker(monkeypatch, item,
+                            _release("v1", "2026-01-01T00:00:00Z", assets=2))
+    after = _latest_marker(monkeypatch, item,
+                           _release("v2", "2026-01-02T00:00:00Z", assets=2))
+
+    assert before != after
+    assert after.startswith("v2@")

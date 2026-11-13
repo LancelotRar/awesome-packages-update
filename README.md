@@ -15,10 +15,18 @@
 
 | 策略 | 标记 | 适用场景 |
 | --- | --- | --- |
-| `latest` | 最新**稳定版** Release 的 `updated_at`（跳过 draft 与 prerelease） | 常规发版 |
+| `latest` | 最新**稳定版** Release 的 `tag` + 命中资产指纹（跳过 draft 与 prerelease） | 常规发版 |
 | `tag` | 指定 tag 下匹配资产的 `(name, size, updated_at)` 指纹 | 长期不换 tag、只原地替换资产的滚动 Release |
 
-项目里所有对外记录和展示的时间都换算成北京时间（`+08:00`）：`state.json` 的 `marker` / `last_checked`，以及 Telegram 通知里的发布时间。GitHub API 返回的 `Z` 时间戳在入库和投递前统一转换；`tag` 策略的指纹仍是原始值的哈希，不受影响。
+`latest` 的 marker 形如 `v1.19.8@<sha256>`，由 release tag 与「命中 `asset_include` / `asset_exclude` 的资产」共同决定：
+
+- 新 tag → 通知；
+- 同 tag 但命中资产被替换、重传或新增 → 通知；
+- 只改发布说明等元数据、命中资产没动 → 不通知。
+
+GitHub API 不提供资产内容哈希，所以同名同大小但被重新上传的资产也算一次替换。
+
+项目里所有对外记录和展示的时间都换算成北京时间（`+08:00`）：`state.json` 的 `last_checked` 与 Telegram 通知里的发布时间。GitHub API 返回的 `Z` 时间戳在入库和投递前统一转换；`latest` 的 marker 与 `tag` 策略的指纹都不是时间，保持原样。
 
 #### 按 tag 通配选择
 
@@ -27,7 +35,7 @@
 - 先取仓库的 Release 列表，丢弃 draft、prerelease 和没有 tag 的条目；
 - 再用 glob（`*`、`?` 等，不区分大小写）逐条匹配，任一 pattern 命中即可；
 - 在命中项中取 `published_at` 最新的一个，读取该 tag 的完整 Release 及其资产；
-- 标记仍为该 Release 的 `updated_at`，与不写此字段时相同。
+- 标记仍为该 Release 的 tag + 命中资产指纹，与不写此字段时相同。
 
 没有任何条目命中时按检测失败处理：本次不投递、标记不推进、下次运行重试，不会静默跳过。不带 `release_tag_include` 的 `latest` 条目同理：如果仓库只有 prerelease 或 draft，会以「没有稳定版」失败，而不是把预发布当成正式版。该字段只与 `latest` 搭配，写在 `strategy: tag` 条目上会被清单校验拒绝；显式写成 `[]` 同样会被拒绝，省略该字段才表示「不按 tag 过滤」。
 

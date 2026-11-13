@@ -233,7 +233,9 @@ def _asset_matches(name: str, include_rules: list[list[tuple[str, str]]],
 
 def get_matching_assets(release_data: dict,
                         include_filter: str = "",
-                        exclude_filter: str = "") -> list[dict]:
+                        exclude_filter: str = "",
+                        *,
+                        log_result: bool = True) -> list[dict]:
     """Filter release assets by include/exclude rules.
 
     Parameters
@@ -245,6 +247,10 @@ def get_matching_assets(release_data: dict,
         Empty means every asset is eligible.
     exclude_filter
         Same syntax; assets matching any exclude rule are dropped.
+    log_result
+        Emit one ``asset_filter`` event describing the outcome. Callers that
+        only need the set (e.g. a fingerprint) pass ``False`` so the
+        delivery decision is logged exactly once.
 
     Returns assets whose *size* > 0 and that pass the filters.
     """
@@ -258,17 +264,17 @@ def get_matching_assets(release_data: dict,
     matched = [a for a in assets
                if a["size"] > 0 and _asset_matches(a["name"], include_rules, exclude_rules)]
 
-    # -- logging --
-    total = len(assets)
-    if include_filter or exclude_filter:
-        fields: dict[str, Any] = {"matched": len(matched), "total": total}
-        if include_filter:
-            fields["include"] = include_filter
-        if exclude_filter:
-            fields["exclude"] = exclude_filter
-        log.info("asset_filter", **fields)
-    else:
-        log.debug("asset_filter_disabled", total=total)
+    if log_result:
+        total = len(assets)
+        if include_filter or exclude_filter:
+            fields: dict[str, Any] = {"matched": len(matched), "total": total}
+            if include_filter:
+                fields["include"] = include_filter
+            if exclude_filter:
+                fields["exclude"] = exclude_filter
+            log.info("asset_filter", **fields)
+        else:
+            log.debug("asset_filter_disabled", total=total)
 
     return matched
 

@@ -1,11 +1,13 @@
 """Detection strategies: decide whether a watch item has an update.
 
-``latest`` compares the newest stable release's ``updated_at``: drafts and
-prereleases never qualify. When a tag filter is configured, "newest" means
-the newest stable release whose tag matches any pattern. The chosen tag is
-then fetched in full so its asset list is complete. ``tag`` fingerprints a named release's matched assets so
-in-place asset replacement is detected even though the release itself
-never changes.
+``latest`` watches the newest stable release and marks it by tag plus a
+fingerprint of the assets the item's filter selects: a new version or a
+replaced/added asset notifies, a metadata-only edit to the same release
+does not. Drafts and prereleases never qualify. When a tag filter is
+configured, "newest" means the newest stable release whose tag matches any
+pattern. The chosen tag is then fetched in full so its asset list is
+complete. ``tag`` fingerprints a named release's matched assets so in-place
+asset replacement is detected even though the release itself never changes.
 """
 
 from __future__ import annotations
@@ -48,11 +50,21 @@ def asset_fingerprint(assets: list[dict]) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
-def _latest_detection(release: dict) -> Detection:
-    """Wrap a release in the detection shape ``latest`` has always used."""
+def _latest_detection(item: WatchItem, release: dict) -> Detection:
+    """Wrap a release in the detection shape ``latest`` has always used.
+
+    The marker is the tag plus a fingerprint of the *matched* assets, so a
+    new version always differs while a metadata-only edit to the same
+    release does not. Replaced or added assets move the fingerprint and
+    therefore still notify.
+    """
+    matched = get_matching_assets(
+        release, item.asset_include, item.asset_exclude, log_result=False,
+    )
+    tag = str(release.get("tag_name", ""))
     return Detection(
         release=release,
-        marker=to_beijing_iso(release.get("updated_at", "")),
+        marker=f"{tag}@{asset_fingerprint(matched)}",
         asset_count=len(release.get("assets", [])),
     )
 
@@ -112,7 +124,7 @@ def detect(item: WatchItem, token: str = "") -> Detection | None:
         release = _require_release(
             fetch_release_by_tag(item.repo, tag, token), tag, item
         )
-        return _latest_detection(release)
+        return _latest_detection(item, release)
 
     if item.strategy == STRATEGY_TAG:
         release = _require_release(
@@ -122,7 +134,7 @@ def detect(item: WatchItem, token: str = "") -> Detection | None:
         )
 
         assets = get_matching_assets(release, item.asset_include,
-                                     item.asset_exclude)
+                                     item.asset_exclude, log_result=False)
         if not assets:
             raise RuntimeError(
                 "No assets matched ASSET_INCLUDE/ASSET_EXCLUDE — "
