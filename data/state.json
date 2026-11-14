@@ -2,246 +2,246 @@
   "3fui": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-13T11:29:40+08:00",
+    "last_checked": "2026-11-14T11:30:37+08:00",
     "last_error": "",
     "marker": "6.5.0@9c3b335aef15359fe2660596734c6dde6084d30b39e977bc5bf9dcd382026fbb"
   },
   "64gram-desktop": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-13T11:29:40+08:00",
+    "last_checked": "2026-11-14T11:30:34+08:00",
     "last_error": "",
     "marker": "v1.2.12@47818d94a50bdd268b0fc6866b6122d4e83cd984b97f6bac825e4254d0a51cf0"
   },
   "ainanplayer": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-13T11:29:40+08:00",
+    "last_checked": "2026-11-14T11:28:08+08:00",
     "last_error": "",
     "marker": "v4.5.0@1df3be3524c9b311d6326322a7acefc2f5debfe28af6f986c2168afa3610088c"
   },
   "ant-video": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-13T11:29:40+08:00",
+    "last_checked": "2026-11-14T11:28:08+08:00",
     "last_error": "",
     "marker": "2.0.6@609aff9de39b9dfb81e92933cc9263f3297e7192fbd115cf764cbd5b0dce5727"
   },
   "bbll": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-13T11:29:40+08:00",
+    "last_checked": "2026-11-14T11:30:23+08:00",
     "last_error": "",
     "marker": "1.5.5@d0a022365bce49a4b2ac9dc92bab0a8e894b27e96bdd364d32c14a75666e23f6"
   },
   "bettbox": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-13T11:29:40+08:00",
+    "last_checked": "2026-11-14T11:28:08+08:00",
     "last_error": "",
     "marker": "v1.19.8@b4d1230454ecfa1bd1d784ad48303d68bb80ec7303bdc3b2a14e53d5814b32a0"
   },
   "bitwarden-android": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-13T11:29:40+08:00",
+    "last_checked": "2026-11-14T11:30:23+08:00",
     "last_error": "",
     "marker": "v2026.11.0-bwpm@c431c7d2f4b880191db17ffa228853fddad10b16c5a299788d23df530d0ee063"
   },
   "bitwarden-win": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-13T11:29:40+08:00",
+    "last_checked": "2026-11-14T11:30:23+08:00",
     "last_error": "",
     "marker": "desktop-v2026.10.4@8d6a2094cdce38b0f33a7d908fbb11335bf1f1c7079df28edd4bdc36236350ec"
   },
   "clash-verge-rev": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-13T11:29:40+08:00",
+    "last_checked": "2026-11-14T11:30:37+08:00",
     "last_error": "",
     "marker": "v2.5.10@8673f0893fd38b9a9bfe267265dcc501165f76f28fdcbe59dea1eb8255921a18"
   },
   "cmfa": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-13T11:29:40+08:00",
+    "last_checked": "2026-11-14T11:28:08+08:00",
     "last_error": "",
     "marker": "v2.11.37@7c1e37d281d2e9c04bd1019e599e1b30bc5b29892fda56d546fb787064fb12fa"
   },
   "defender-remover": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-13T11:29:40+08:00",
+    "last_checked": "2026-11-14T11:30:37+08:00",
     "last_error": "",
     "marker": "release13-rev1@eb39db7151b8cd1b1cfb5b8a30f6e66972c2cf74cc4dec548fb84db0d522643a"
   },
   "flclash": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-13T11:29:40+08:00",
+    "last_checked": "2026-11-14T11:28:08+08:00",
     "last_error": "",
     "marker": "v0.9.3@1a58ffc3e65b738aabfc86e4e376a57db9664f5fcaca0bdfb123603c9d9363cc"
   },
   "fongmi-module": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-13T11:29:40+08:00",
+    "last_checked": "2026-11-14T11:25:57+08:00",
     "last_error": "",
-    "marker": "97619b4e5218230d8c380a8db17cddb5490d5f4df53419c452bbda870a58374e"
+    "marker": "adcf2007123c069ef651612659411c84ef7bca75e3dd9b6b3aa8f76a2f8acb5a"
   },
   "fongmitv": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-13T11:29:40+08:00",
+    "last_checked": "2026-11-14T11:28:08+08:00",
     "last_error": "",
-    "marker": "5.8.7@22df7cde7c6e1fd46b179a8eea0aa244be94233e1f04e37d02f3cbecb5c9cd31"
+    "marker": "5.8.8@6357fff6a92bf8f390dc63b004c75d77f6f9a3f202bdd5a57cce17bd46d83332"
   },
   "gkd": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-13T11:29:40+08:00",
+    "last_checked": "2026-11-14T11:30:23+08:00",
     "last_error": "",
-    "marker": "v1.13.1@e5c386db5e1106bd4bfef931d141d28c3836e070481c79badd125c0e0c279291"
+    "marker": "v1.13.2@66243712bd69fed352e1fd11095bea73cc8ee13287aaf27c2736f916ec5a2746"
   },
   "handbrake": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-13T11:29:40+08:00",
+    "last_checked": "2026-11-14T11:30:34+08:00",
     "last_error": "",
     "marker": "1.11.2@665d49c0489356f6ff2011c6e8b5ce882ff206d922c76faec6c5930973e9e27d"
   },
   "heu-kms-activator": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-13T11:29:40+08:00",
+    "last_checked": "2026-11-14T11:30:37+08:00",
     "last_error": "",
     "marker": "64.0.0@01affeea01f12bbc6455954b84d3df6f907e741405be84332775b38d0d5b9362"
   },
   "jellyfin-androidtv": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-13T11:29:40+08:00",
+    "last_checked": "2026-11-14T11:30:34+08:00",
     "last_error": "",
     "marker": "v0.20.0@49091eec2fea144847a01a9b84d683aecf47e679333225642a475d6ee4049590"
   },
   "lenovo-legion-toolkit": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-13T11:29:40+08:00",
+    "last_checked": "2026-11-14T11:30:34+08:00",
     "last_error": "",
     "marker": "v2.36.7.12@92d839a43b0cc28c314e684edc9c1709ca4b0c94223c3479d14390dab3182e39"
   },
   "localsend": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-13T11:29:40+08:00",
+    "last_checked": "2026-11-14T11:30:37+08:00",
     "last_error": "",
     "marker": "v1.18.2@28c5368a9ab28403987c56989cd86500f242de49c93d01cbc37ee8da2606f9f8"
   },
   "moonlight": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-13T11:29:40+08:00",
+    "last_checked": "2026-11-14T11:30:34+08:00",
     "last_error": "",
     "marker": "v12.15.6@fc1aab2b2ee1c94d6dfd85e18d0dd1dcba2ccfa02097fcdcc2a9f34ad69b854b"
   },
   "nagram-desktop": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-13T11:29:40+08:00",
+    "last_checked": "2026-11-14T11:30:37+08:00",
     "last_error": "",
     "marker": "v7.4.1.3@d5a1f53a9032e9dc571d565484a7aefd31823cea935df0e34f5bb52cde3a56e9"
   },
   "notepad3": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-13T11:29:40+08:00",
+    "last_checked": "2026-11-14T11:30:34+08:00",
     "last_error": "",
     "marker": "RELEASE_7.26.602.1@0e7271ca4433e71e125133badf7a8ffa85d5a86d455eb7f2d5d3c9462e56f2e7"
   },
   "powershell": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-13T11:29:40+08:00",
+    "last_checked": "2026-11-14T11:30:37+08:00",
     "last_error": "",
     "marker": "v7.7.0@a1d9ad144a517fba7b07a1d4a5e877a1359ac8809ef2b7fa65ac009ee87932b4"
   },
   "powertoys": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-13T11:29:40+08:00",
+    "last_checked": "2026-11-14T11:30:37+08:00",
     "last_error": "",
     "marker": "v0.102.3101@70ee8ee91f9cb42fce44aacbc0ffd8ec2dc17cbf24cd20684648714db193f41d"
   },
   "stranslate": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-13T11:29:40+08:00",
+    "last_checked": "2026-11-14T11:30:37+08:00",
     "last_error": "",
     "marker": "v2.0.10@89b02a1f2a2767144ba6dc47a25c9dd8d6fc83266c64311dd7412e70ee3c6e1f"
   },
   "sunshine": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-13T11:29:40+08:00",
+    "last_checked": "2026-11-14T11:30:34+08:00",
     "last_error": "",
     "marker": "v2026.1031.121458.杂鱼@8c8bc2408f8d76da17e545175d990bf350d4c2e7330161beb5406b8aa1e915a0"
   },
   "syncthing": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-13T11:29:40+08:00",
+    "last_checked": "2026-11-14T11:30:34+08:00",
     "last_error": "",
     "marker": "v2.1.7@0c98a4a067122e155f9ea6a60f285c952ab4fef32242cd119f73dd8ec8db12ac"
   },
   "tailscale-android": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-13T11:29:40+08:00",
+    "last_checked": "2026-11-14T11:30:34+08:00",
     "last_error": "",
     "marker": "1.104.6-t3b273a64c-g08d3d325a@e7a832b508744820509f24fa1e5c6126bc1cdc7728e0c733110f3fa42c70b857"
   },
   "tubatools": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-13T11:29:40+08:00",
+    "last_checked": "2026-11-14T11:30:37+08:00",
     "last_error": "",
     "marker": "v1.9.0@87b4131cd0c4b5eefa8b11b77cd4acd19a733ecac38af51b1f3cc24fb19eae22"
   },
   "v2rayn": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-13T11:29:40+08:00",
+    "last_checked": "2026-11-14T11:30:34+08:00",
     "last_error": "",
     "marker": "7.25.6@6666f86a18045abbd660f2c3a4478f7a517239b545a33bfd3226273658d203ce"
   },
   "webhtv": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-13T11:29:40+08:00",
+    "last_checked": "2026-11-14T11:25:57+08:00",
     "last_error": "",
     "marker": "v5.6.0-202609241253@a46c83fd00df237dace0ce6ef2e8a24e0027435aa56d942142e3737bbf4ab155"
   },
   "windows-terminal": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-13T11:29:40+08:00",
+    "last_checked": "2026-11-14T11:30:37+08:00",
     "last_error": "",
     "marker": "v1.25.3131.0@181ead52bcb9f324433ecbe63c08b7873cded2848d4f0f829add6bf9d202a0f9"
   },
   "winhance": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-13T11:29:40+08:00",
+    "last_checked": "2026-11-14T11:30:34+08:00",
     "last_error": "",
     "marker": "v26.06.12@47367b47cf880ed5c6791bec17032580a894adadbbef76814daee679f71e45fb"
   },
   "winutil": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-13T11:29:40+08:00",
+    "last_checked": "2026-11-14T11:30:34+08:00",
     "last_error": "",
-    "marker": "26.10.28@db5c357152f0cdb84d67e8e0987ecbd55330703f86c8de472a6a1e23a6810b82"
+    "marker": "26.11.13@87fb2be4ec82dacb062a0656f41918549bcd32731f67cdb685783ea271464ad4"
   }
 }
