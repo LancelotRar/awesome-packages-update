@@ -29,7 +29,7 @@ from typing import TYPE_CHECKING
 
 from env import chat_ids, telegram_config
 from logs import configure, context, logger
-from scan import scan_item
+from scan import ScanStatus, scan_item
 from watchlist import load_watchlist
 
 if TYPE_CHECKING:
@@ -139,22 +139,22 @@ def main() -> int:
     for item in items:
         with context(item=item.id):
             result = scan_item(item, token)
-            if result.error:
-                log.error("detection_failed", repo=item.repo, error=result.error)
-                problems.append((item.id, f"检测失败：{result.error}"))
+            if result.status is ScanStatus.DETECTION_FAILED:
+                log.error("detection_failed", repo=item.repo, error=result.reason)
+                problems.append((item.id, result.reason))
                 continue
 
-            if result.detection is None:
+            if result.status is ScanStatus.NO_RELEASES:
                 log.warning("no_releases", repo=item.repo)
                 continue
 
-            if result.problem:
+            if result.status is ScanStatus.ASSETS_UNMATCHED:
                 log.error("assets_unmatched", repo=item.repo, tag=result.tag,
                           include=item.asset_include)
-                problems.append((item.id, result.problem))
+                problems.append((item.id, result.reason))
                 continue
 
-            if not result.asset_count:
+            if not result.matched:
                 log.warning("no_assets", repo=item.repo, tag=result.tag)
                 continue
 

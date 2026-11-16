@@ -32,7 +32,7 @@ class Detection:
 
     release: dict
     marker: str
-    asset_count: int
+    matched: tuple[dict, ...]
 
 
 def asset_fingerprint(assets: list[dict]) -> str:
@@ -65,7 +65,7 @@ def _latest_detection(item: WatchItem, release: dict) -> Detection:
     return Detection(
         release=release,
         marker=f"{tag}@{asset_fingerprint(matched)}",
-        asset_count=len(release.get("assets", [])),
+        matched=tuple(matched),
     )
 
 
@@ -152,7 +152,7 @@ def detect(item: WatchItem, token: str = "") -> Detection | None:
         return Detection(
             release=display,
             marker=asset_fingerprint(assets),
-            asset_count=len(assets),
+            matched=tuple(assets),
         )
 
     raise RuntimeError(f"Unknown strategy: {item.strategy}")

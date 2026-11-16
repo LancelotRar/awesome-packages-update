@@ -29,7 +29,7 @@ from pathlib import Path
 
 from env import ConfigError, chat_ids, required, telegram_config
 from logs import configure, context, logger
-from scan import ScanResult, scan_item
+from scan import ScanResult, ScanStatus, scan_item
 from notifier import TelegramConfig, notify, open_client, send_text
 from state import (
     load_state,
@@ -162,19 +162,21 @@ async def main() -> int:
         now = _now()
 
         with context(item=item.id):
-            if result.error:
-                log.error("detection_failed", repo=item.repo, error=result.error)
-                record_failure(state, item.id, now, result.error)
+            if result.status is ScanStatus.DETECTION_FAILED:
+                log.error("detection_failed", repo=item.repo, error=result.reason)
+                record_failure(state, item.id, now, result.reason)
                 failed.append(item.id)
-                row_by_id[item.id] = (item.id, "❌ detection", result.error)
+                row_by_id[item.id] = (item.id, "❌ detection", result.reason)
                 continue
 
-            detection = result.detection
-            if detection is None:
+            if result.status is ScanStatus.NO_RELEASES:
                 log.info("no_releases", repo=item.repo)
                 mark_healthy(state, item.id, now)
                 row_by_id[item.id] = (item.id, "➖ no releases", "")
                 continue
+
+            detection = result.detection
+            assert detection is not None  # guaranteed by ScanResult
 
             previous = marker_of(state, item.id)
             if not force and detection.marker == previous:
@@ -184,14 +186,14 @@ async def main() -> int:
                 continue
 
             log.info("update_detected", repo=item.repo, previous=previous,
-                     marker=detection.marker, assets=detection.asset_count)
+                     marker=detection.marker, assets=len(detection.matched))
 
-            if result.problem:
+            if result.status is ScanStatus.ASSETS_UNMATCHED:
                 log.error("assets_unmatched", repo=item.repo,
                           include=item.asset_include)
-                record_failure(state, item.id, now, "no assets matched")
+                record_failure(state, item.id, now, result.reason)
                 failed.append(item.id)
-                row_by_id[item.id] = (item.id, "❌ no assets", item.asset_include)
+                row_by_id[item.id] = (item.id, "❌ no assets", result.reason)
                 continue
 
             error = "delivery failed"

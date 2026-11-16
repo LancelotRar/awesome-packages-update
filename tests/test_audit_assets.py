@@ -21,12 +21,14 @@ def _item(pid: str, *, enabled: bool = True, include: str = ".apk") -> WatchItem
                      notify=NotifyCopy(title=pid), asset_include=include,
                      enabled=enabled)
 
-def _detection(tag: str = "v1", *, assets: int = 1) -> Detection:
-    return Detection(release={"tag_name": tag,
-                              "assets": [{"name": f"a{i}"} for i in range(assets)]},
-                     marker="m", asset_count=assets)
+def _detection(tag: str = "v1", *, assets: int = 1,
+               matched: int | None = None) -> Detection:
+    all_assets = [{"name": f"a{i}"} for i in range(assets)]
+    selected = all_assets if matched is None else all_assets[:matched]
+    return Detection(release={"tag_name": tag, "assets": all_assets},
+                     marker="m", matched=tuple(selected))
 
-def _patch(monkeypatch, items, *, detected=None, matched=None, error=None):
+def _patch(monkeypatch, items, *, detected=None, error=None):
     monkeypatch.setenv("WATCHLIST", "unused.yaml")
     # A developer shell may export real Telegram credentials; never let a
     # unit test reach the network.
@@ -40,28 +42,26 @@ def _patch(monkeypatch, items, *, detected=None, matched=None, error=None):
         return detected
 
     monkeypatch.setattr(scan_module, "detect", fake_detect)
-    monkeypatch.setattr(scan_module, "get_matching_assets",
-                        lambda release, include, exclude: matched or [])
 
 def test_all_items_matching_succeeds(monkeypatch):
-    _patch(monkeypatch, [_item("a")], detected=_detection(), matched=[{"name": "x"}])
+    _patch(monkeypatch, [_item("a")], detected=_detection())
 
     assert audit_assets.main() == 0
 
 def test_zero_match_fails(monkeypatch):
-    _patch(monkeypatch, [_item("a")], detected=_detection(assets=2), matched=[])
+    _patch(monkeypatch, [_item("a")], detected=_detection(assets=2, matched=0))
 
     assert audit_assets.main() == 1
 
 def test_release_without_assets_fails_when_a_filter_is_set(monkeypatch):
     """0 assets + include filter is a failure, same policy as the runner."""
-    _patch(monkeypatch, [_item("a")], detected=_detection(assets=0), matched=[])
+    _patch(monkeypatch, [_item("a")], detected=_detection(assets=0))
 
     assert audit_assets.main() == 1
 
 def test_release_without_assets_is_a_warning_without_a_filter(monkeypatch):
     _patch(monkeypatch, [_item("a", include="")],
-           detected=_detection(assets=0), matched=[])
+           detected=_detection(assets=0))
 
     assert audit_assets.main() == 0
 
@@ -71,7 +71,7 @@ def test_detection_error_fails(monkeypatch):
     assert audit_assets.main() == 1
 
 def test_disabled_items_are_skipped(monkeypatch):
-    _patch(monkeypatch, [_item("a", enabled=False)], matched=[])
+    _patch(monkeypatch, [_item("a", enabled=False)])
 
     assert audit_assets.main() == 0
 
@@ -99,7 +99,7 @@ def _capture_send(monkeypatch, ok: bool = True) -> list[tuple[str, list[int]]]:
 def test_zero_match_pushes_report_naming_the_item(monkeypatch):
     """A failing audit sends the admin chat the item and its filter."""
     _patch(monkeypatch, [_item("a", include=".apk+arm64")],
-           detected=_detection(tag="v1.2.3", assets=2), matched=[])
+           detected=_detection(tag="v1.2.3", assets=2, matched=0))
     _telegram_env(monkeypatch, present=True)
     sent = _capture_send(monkeypatch)
 
@@ -117,7 +117,7 @@ def test_multiple_problems_send_one_aggregated_message(monkeypatch):
     """Three broken items -> a single message listing all of them."""
     _patch(monkeypatch, [
         _item("a"), _item("b"), _item("c"),
-    ], detected=_detection(assets=2), matched=[])
+    ], detected=_detection(assets=2, matched=0))
     _telegram_env(monkeypatch, present=True)
     sent = _capture_send(monkeypatch)
 
@@ -137,10 +137,11 @@ def test_detection_error_pushes_report(monkeypatch):
 
     assert audit_assets.main() == 1
     assert len(sent) == 1
+    assert "检测失败：" in sent[0][0][0]
     assert "boom" in sent[0][0][0]
 
 def test_no_report_when_telegram_is_not_configured(monkeypatch):
-    _patch(monkeypatch, [_item("a")], detected=_detection(assets=2), matched=[])
+    _patch(monkeypatch, [_item("a")], detected=_detection(assets=2, matched=0))
     _telegram_env(monkeypatch, present=False)
     sent = _capture_send(monkeypatch)
 
@@ -148,7 +149,7 @@ def test_no_report_when_telegram_is_not_configured(monkeypatch):
     assert sent == []
 
 def test_success_sends_no_report(monkeypatch):
-    _patch(monkeypatch, [_item("a")], detected=_detection(), matched=[{"name": "x"}])
+    _patch(monkeypatch, [_item("a")], detected=_detection())
     _telegram_env(monkeypatch, present=True)
     sent = _capture_send(monkeypatch)
 

@@ -53,7 +53,10 @@ def test_picks_newest_matching_release_and_counts_its_assets(monkeypatch):
     assert result.release["tag_name"] == "desktop-v2026.3.0"
     assert result.marker == ("desktop-v2026.3.0@"
                              + detector.asset_fingerprint(result.release["assets"]))
-    assert result.asset_count == 4
+    assert len(result.matched) == 4
+    assert [a["name"] for a in result.matched] == [
+        f"a{i}.exe" for i in range(4)
+    ]
 
 def test_prerelease_is_never_selected(monkeypatch):
     releases = [
@@ -135,7 +138,7 @@ def test_without_tag_filter_picks_newest_stable_release(monkeypatch):
     assert result.release["tag_name"] == "v10"
     assert result.marker == ("v10@"
                              + detector.asset_fingerprint(result.release["assets"]))
-    assert result.asset_count == 3
+    assert len(result.matched) == 3
 
 def test_draft_release_is_never_selected(monkeypatch):
     draft = _release("v11", "2026-04-01T00:00:00Z")

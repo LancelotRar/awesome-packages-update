@@ -18,7 +18,7 @@ def _items():
                   notify=NotifyCopy(title="b")),
     ]
 
-def _detection(marker: str) -> Detection:
+def _detection(marker: str, *, matched: list[dict] | None = None) -> Detection:
     return Detection(
         release={
             "name": "v2",
@@ -28,7 +28,7 @@ def _detection(marker: str) -> Detection:
             "assets": [],
         },
         marker=marker,
-        asset_count=0,
+        matched=tuple(matched or []),
     )
 
 def _clear_env(monkeypatch):
@@ -66,17 +66,17 @@ def _run(monkeypatch, tmp_path, *, markers=None, notify_ok=True,
     if admin is not None:
         monkeypatch.setenv("TG_CHAT_ID_ADMIN", admin)
 
+    default_detection = _detection("m2", matched=matched)
+
     def fake_detect(item, token):
         if detected is not None:
             detected.append(item.id)
-        outcome = markers.get(item.id, _detection("m2"))
+        outcome = markers.get(item.id, default_detection)
         if isinstance(outcome, Exception):
             raise outcome
         return outcome
 
     monkeypatch.setattr(scan_module, "detect", fake_detect)
-    monkeypatch.setattr(scan_module, "get_matching_assets",
-                        lambda release, include, exclude: matched)
 
     delivered: list[str] = []
     alerts: list[str] = []
@@ -342,4 +342,4 @@ def test_zero_matching_assets_fails_before_opening_client(monkeypatch, tmp_path)
     assert delivered == []
     assert opened == []
     assert state["a"]["failures"] == 1
-    assert "no assets" in state["a"]["last_error"]
+    assert "没有资产命中" in state["a"]["last_error"]
