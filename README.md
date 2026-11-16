@@ -111,11 +111,15 @@ GitHub API 不提供资产内容哈希，所以同名同大小但被重新上传
 ```bash
 pip install -r scripts/requirements.txt
 
+# 本地检测工具（不在 scripts/requirements.txt 里）
+pip install ruff pytest
+
 # 只检查，不投递
 PROJECT=all python scripts/run_checks.py
 
-# 单测
-python -m pytest scripts/tests -q
+# 静态检查 + 单测
+python -m ruff check scripts
+python -m pytest tests -q
 
 # 审计资产过滤（需要 GITHUB_TOKEN）
 GITHUB_TOKEN=$(gh auth token) python scripts/audit_assets.py
@@ -160,5 +164,5 @@ scripts/state.py                       data/state.json 原子读写
 scripts/timestamps.py                  北京时间（UTC+8）时间戳工具
 scripts/github_api.py                  GitHub API 客户端
 scripts/notifier.py                    Telegram 投递
-scripts/tests/                         单元测试
+tests/                                 单元测试
 ```

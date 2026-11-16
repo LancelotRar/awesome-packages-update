@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 # ``notifier`` imports its sibling ``github_api`` at module level, so the
 # parent scripts directory (not just this ``tests`` dir) must be importable.
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 from telethon import errors as tg_errors
 

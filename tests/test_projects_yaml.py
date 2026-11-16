@@ -11,7 +11,7 @@ from pathlib import Path
 
 import yaml
 
-_ROOT = Path(__file__).resolve().parents[2]
+_ROOT = Path(__file__).resolve().parents[1]
 _ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 _MAX_DESCRIPTION = 40
 
