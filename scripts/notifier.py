@@ -16,6 +16,7 @@ from telethon.tl.types import DocumentAttributeFilename
 from github_api import stream_asset
 from logs import logger
 from timestamps import to_beijing_date
+from watchlist import NotifyCopy
 
 _ALBUM_MAX = 10  # Telegram albums accept 2-10 items
 _UPLOAD_TIMEOUT = 3600  # seconds for the whole asset fetch/upload phase
@@ -25,48 +26,40 @@ log = logger("notifier")
 
 @dataclass
 class TelegramConfig:
-    """Credentials and display settings for Telegram notification."""
+    """Telegram connection credentials and target chats."""
 
     bot_token: str
     chat_ids: list[int] = field(default_factory=list)
     api_id: int = 0
     api_hash: str = ""
-    notify_title: str = ""
-    notify_group_url: str = ""
-    notify_channel_url: str = ""
-    notify_project_url: str = ""
-    notify_description: str = ""
-    notify_tag: str = ""
 
 
 def _build_message(asset_name: str, pub_date: str, html_url: str,
-                   title: str, group_url: str,
-                   channel_url: str = "", project_url: str = "",
-                   description: str = "", tag: str = "") -> str:
+                   copy: NotifyCopy) -> str:
     """Build the HTML notification text.
 
     Optional lines (title/description/group/channel/project) are
-    omitted entirely when their value is empty.  ``tag`` is appended
+    omitted entirely when their value is empty.  ``copy.tag`` is appended
     as the last line, plain text so Telegram indexes it as a
     searchable hashtag.
     """
     name = escape(asset_name)
     lines = []
-    if title:
-        lines.append(f"🚀 <b>{title}</b>")
-    if description:
-        lines.append(f"📝 <b>{escape(description)}</b>")
-    if group_url:
-        lines.append(f'📢 <b><a href="{group_url}">TG 群组</a></b>')
-    if channel_url:
-        lines.append(f'📣 <b><a href="{channel_url}">TG 频道</a></b>')
-    if project_url:
-        lines.append(f'🌐 <b><a href="{project_url}">项目地址</a></b>')
+    if copy.title:
+        lines.append(f"🚀 <b>{copy.title}</b>")
+    if copy.description:
+        lines.append(f"📝 <b>{escape(copy.description)}</b>")
+    if copy.group_url:
+        lines.append(f'📢 <b><a href="{copy.group_url}">TG 群组</a></b>')
+    if copy.channel_url:
+        lines.append(f'📣 <b><a href="{copy.channel_url}">TG 频道</a></b>')
+    if copy.project_url:
+        lines.append(f'🌐 <b><a href="{copy.project_url}">项目地址</a></b>')
     lines.append(f"🌀 <b>版本：</b><code>{name}</code>")
     lines.append(f"🍾 <b>发布时间：{pub_date}</b>")
     lines.append(f'🔗 <b><a href="{html_url}">查看完整 Release 日志</a></b>')
-    if tag:
-        lines.append(tag)
+    if copy.tag:
+        lines.append(copy.tag)
     return "\n".join(lines)
 
 
@@ -146,13 +139,15 @@ async def send_text(text: str, cfg: TelegramConfig, client) -> bool:
     return sent == len(cfg.chat_ids)
 
 
-async def notify(release_data: dict, cfg: TelegramConfig, client,
-                 assets: Sequence[dict], github_token: str = "") -> bool:
+async def notify(release_data: dict, copy: NotifyCopy, cfg: TelegramConfig,
+                 client, assets: Sequence[dict], github_token: str = "") -> bool:
     """Send a release notification (with pre-matched assets) to every chat.
 
-    ``assets`` is the already-matched set from the scan phase, so the filter
-    runs once per item instead of once per check and again per delivery.
-    *client* is owned by the caller (see ``telegram_session``).
+    ``copy`` is the watch item's channel-facing wording; ``cfg`` carries the
+    connection credentials and target chats. ``assets`` is the already-matched
+    set from the scan phase, so the filter runs once per item instead of once
+    per check and again per delivery. *client* is owned by the caller (see
+    ``telegram_session``).
 
     Files are streamed from GitHub straight to Telegram CDN (no local
     disk write).  The upload is performed **once** and the same
@@ -164,10 +159,7 @@ async def notify(release_data: dict, cfg: TelegramConfig, client,
     asset_name = release_data.get("name") or release_data["tag_name"]
     pub_date = to_beijing_date(release_data.get("published_at", ""))
     rel_url = release_data["html_url"]
-    text = _build_message(asset_name, pub_date, rel_url,
-                          cfg.notify_title, cfg.notify_group_url,
-                          cfg.notify_channel_url, cfg.notify_project_url,
-                          cfg.notify_description, cfg.notify_tag)
+    text = _build_message(asset_name, pub_date, rel_url, copy)
 
     matched_assets = list(assets)
     all_ok = True
@@ -235,22 +227,9 @@ async def notify(release_data: dict, cfg: TelegramConfig, client,
         # Only reachable when there were no matching assets at all;
         # any upload failure already returned False above.
         log.info("text_only_notification", chats=len(cfg.chat_ids))
-        sent = 0
-        for raw_cid in cfg.chat_ids:
-            try:
-                # link_preview=False: 消息含多个 URL, 关闭链接预览避免大段展开
-                await client.send_message(raw_cid, text, parse_mode="html",
-                                          link_preview=False)
-                log.info("text_sent", chat=raw_cid)
-                sent += 1
-            except tg_errors.FloodWaitError as e:
-                log.error("flood_wait", chat=raw_cid, seconds=e.seconds)
-                break
-            except Exception as e:
-                log.error("text_send_failed", chat=raw_cid, error=str(e))
         # False -> caller skips persistence and retries on the next run.
         # Contract: True only when *every* chat was notified.
-        return sent == len(cfg.chat_ids)
+        return await send_text(text, cfg, client)
 
     # A release may expose more files than one Telegram album holds, so
     # send consecutive batches of at most ``_ALBUM_MAX`` items. The

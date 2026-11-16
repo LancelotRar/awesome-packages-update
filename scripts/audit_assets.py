@@ -27,7 +27,7 @@ from html import escape
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from env import chat_ids as parse_chat_ids
+from env import chat_ids, telegram_config
 from logs import configure, context, logger
 from scan import scan_item
 from watchlist import load_watchlist
@@ -76,18 +76,11 @@ def _summary(problems: list[tuple[str, str]], total: int) -> str:
 def _send(texts: list[str], chat_ids: list[int]) -> bool:
     """Deliver *texts* over ONE Telegram session for the whole run.
 
-    The notifier is imported lazily so a local audit run needs neither
-    Telegram credentials nor Telethon.
+    Credentials are read by the shared environment factory; the notifier is
+    still imported lazily so a local audit run needs neither Telegram
+    credentials nor Telethon.
     """
-    from notifier import TelegramConfig
-
-    cfg = TelegramConfig(
-        bot_token=os.environ["TG_BOT_TOKEN"].strip(),
-        chat_ids=chat_ids,
-        api_id=int(os.environ["TG_API_ID"]),
-        api_hash=os.environ["TG_API_HASH"].strip(),
-    )
-    return asyncio.run(_deliver(cfg, texts))
+    return asyncio.run(_deliver(telegram_config(chat_ids), texts))
 
 
 async def _deliver(cfg: TelegramConfig, texts: list[str]) -> bool:
@@ -119,7 +112,7 @@ def _notify_failure(text: str) -> None:
                     missing="TG_CHAT_ID_ADMIN" if not chat_raw else ",".join(missing))
         return
     try:
-        ids = parse_chat_ids(chat_raw, "TG_CHAT_ID_ADMIN")
+        ids = chat_ids(chat_raw, "TG_CHAT_ID_ADMIN")
         sent = _send([text], ids)
     except Exception as e:  # a failed report must never mask the audit result
         log.warning("telegram_report_failed", error=str(e))

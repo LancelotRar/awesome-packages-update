@@ -27,7 +27,7 @@ import sys
 import time
 from pathlib import Path
 
-from env import chat_ids, required
+from env import ConfigError, chat_ids, required, telegram_config
 from logs import configure, context, logger
 from scan import ScanResult, scan_item
 from notifier import TelegramConfig, notify, open_client, send_text
@@ -60,42 +60,15 @@ def _short(marker: str) -> str:
     return marker[:12] if marker else "(none)"
 
 
-def _parse_chat_ids(raw: str, var: str) -> list[int]:
+def _admin_ids(raw: str) -> list[int]:
+    """Parse the optional admin chat list, logging a bad value instead of exiting."""
+    if not raw:
+        return []
     try:
-        return chat_ids(raw, var)
-    except RuntimeError as e:
-        log.error("config_error", variable=var, error=str(e))
-        sys.exit(1)
-
-
-def _require_env(var: str) -> str:
-    try:
-        return required(var)
-    except RuntimeError as e:
-        log.error("config_error", variable=var, error=str(e))
-        sys.exit(1)
-
-
-def _telegram(item: WatchItem, targets: list[int]) -> TelegramConfig:
-    copy = item.notify
-    cfg = _credentials(targets)
-    cfg.notify_title = copy.title
-    cfg.notify_group_url = copy.group_url
-    cfg.notify_channel_url = copy.channel_url
-    cfg.notify_project_url = copy.project_url
-    cfg.notify_description = copy.description
-    cfg.notify_tag = copy.tag
-    return cfg
-
-
-def _credentials(targets: list[int]) -> TelegramConfig:
-    """Build a client-only config; the same connection serves every item."""
-    return TelegramConfig(
-        bot_token=_require_env("TG_BOT_TOKEN"),
-        chat_ids=targets,
-        api_id=int(_require_env("TG_API_ID")),
-        api_hash=_require_env("TG_API_HASH"),
-    )
+        return chat_ids(raw, "TG_CHAT_ID_ADMIN")
+    except ConfigError as e:
+        log.error("config_error", error=str(e))
+        return []
 
 
 def _select(items: list[WatchItem], raw: str) -> list[WatchItem]:
@@ -154,7 +127,7 @@ async def main() -> int:
     state_path = Path(os.environ.get("STATE_FILE") or _HERE.parent / "data" / "state.json")
 
     try:
-        items = _select(load_watchlist(watchlist_path), 
+        items = _select(load_watchlist(watchlist_path),
                         (os.environ.get("PROJECT") or "all").strip())
         state = load_state(state_path)
     except RuntimeError as e:
@@ -166,8 +139,12 @@ async def main() -> int:
 
     force = os.environ.get("FORCE", "").lower() == "true"
     token = os.environ.get("GITHUB_TOKEN", "")
-    targets = (_parse_chat_ids(_require_env("TG_CHAT_ID"), "TG_CHAT_ID")
-               if active else [])
+    try:
+        targets = (chat_ids(required("TG_CHAT_ID"), "TG_CHAT_ID")
+                   if active else [])
+    except ConfigError as e:
+        log.error("config_error", error=str(e))
+        return 1
 
     log.info("run_started", items=len(active), skipped=len(skipped), force=force)
 
@@ -178,6 +155,7 @@ async def main() -> int:
     delivered: list[str] = []
     client = None  # opened lazily, reused for every delivery and alert
     client_error = ""  # first failure to connect; later items fail fast
+    delivery_cfg: TelegramConfig | None = None
 
     for result in scans:
         item = result.item
@@ -220,13 +198,14 @@ async def main() -> int:
             try:
                 if client is None and not client_error:
                     try:
-                        client = await open_client(_credentials(targets))
+                        delivery_cfg = telegram_config(targets)
+                        client = await open_client(delivery_cfg)
                     except Exception as e:  # one failure must not retry per item
                         client_error = str(e)
                         log.error("telegram_client_unavailable", error=str(e))
-                if client is None:
+                if client is None or delivery_cfg is None:
                     raise RuntimeError(client_error or "Telegram client unavailable")
-                ok = await notify(detection.release, _telegram(item, targets),
+                ok = await notify(detection.release, item.notify, delivery_cfg,
                                   client, result.matched, token)
             except Exception as e:  # delivery errors are per-item, not fatal
                 ok = False
@@ -250,8 +229,8 @@ async def main() -> int:
             for item in items]
 
     admin_raw = os.environ.get("TG_CHAT_ID_ADMIN", "").strip()
-    if admin_raw:
-        admin_ids = _parse_chat_ids(admin_raw, "TG_CHAT_ID_ADMIN")
+    admin_ids = _admin_ids(admin_raw)
+    if admin_ids:
         alerted = False
         for item in active:
             if not needs_alert(state, item.id, FAILURE_ALERT_THRESHOLD):
@@ -263,13 +242,13 @@ async def main() -> int:
                 try:
                     if client is None and not client_error:
                         try:
-                            client = await open_client(_credentials(admin_ids))
+                            client = await open_client(telegram_config(admin_ids))
                         except Exception as e:
                             client_error = str(e)
                             log.error("telegram_client_unavailable", error=str(e))
                     if client is None:
                         raise RuntimeError(client_error or "client unavailable")
-                    if await send_text(text, _telegram(item, admin_ids), client):
+                    if await send_text(text, telegram_config(admin_ids), client):
                         mark_alerted(state, item.id)
                         alerted = True
                         log.info("admin_alert_sent")
@@ -277,7 +256,7 @@ async def main() -> int:
                     log.error("admin_alert_failed", error=str(e))
         if alerted:
             save_state(state_path, state)
-    else:
+    elif not admin_raw:
         pending = [i.id for i in active
                    if needs_alert(state, i.id, FAILURE_ALERT_THRESHOLD)]
         if pending:

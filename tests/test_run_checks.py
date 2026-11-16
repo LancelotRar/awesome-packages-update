@@ -81,8 +81,8 @@ def _run(monkeypatch, tmp_path, *, markers=None, notify_ok=True,
     delivered: list[str] = []
     alerts: list[str] = []
 
-    async def fake_notify(release, cfg, client, assets, token):
-        delivered.append(cfg.notify_title)
+    async def fake_notify(release, copy, cfg, client, assets, token):
+        delivered.append(copy.title)
         return notify_ok
 
     async def fake_send_text(text, cfg, client=None):

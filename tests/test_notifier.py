@@ -7,6 +7,7 @@ from telethon import errors as tg_errors
 
 import notifier
 from notifier import TelegramConfig, _build_message, notify
+from watchlist import NotifyCopy
 
 
 RELEASE_NO_ASSETS = {
@@ -31,7 +32,7 @@ def _fake_client(send_message_side_effect=None):
     return client
 
 def _notify(release: dict, client, assets=()) -> bool:
-    return asyncio.run(notify(release, _text_cfg(), client, assets))
+    return asyncio.run(notify(release, NotifyCopy(), _text_cfg(), client, assets))
 
 # ---------------------------------------------------------------------------
 # Album-path fixtures: 2 assets, fake stream/upload, all-or-nothing contract.
@@ -81,11 +82,13 @@ def test_full_message():
         asset_name="awesome-actions-v1.2.3.zip",
         pub_date="2026-08-29",
         html_url="https://github.com/foo/bar/releases/tag/v1.2.3",
-        title="Awesome Actions v1.2.3",
-        group_url="https://t.me/awesome_chat",
-        channel_url="https://t.me/awesome_channel",
-        project_url="https://github.com/foo/bar",
-        description="Big release with fixes",
+        copy=NotifyCopy(
+            title="Awesome Actions v1.2.3",
+            group_url="https://t.me/awesome_chat",
+            channel_url="https://t.me/awesome_channel",
+            project_url="https://github.com/foo/bar",
+            description="Big release with fixes",
+        ),
     )
 
     # Then the exact HTML message (including label text) is produced.
@@ -108,9 +111,7 @@ def test_omits_optional_lines_when_empty():
         asset_name="awesome-actions-v1.2.3.zip",
         pub_date="2026-08-29",
         html_url="https://github.com/foo/bar/releases/tag/v1.2.3",
-        title="",
-        group_url="",
-        description="",
+        copy=NotifyCopy(),
     )
 
     # Then only the three mandatory lines remain.
@@ -128,9 +129,7 @@ def test_tag_appended_as_last_line():
         asset_name="awesome-actions-v1.2.3.zip",
         pub_date="2026-08-29",
         html_url="https://github.com/foo/bar/releases/tag/v1.2.3",
-        title="",
-        group_url="",
-        tag="#bettbox",
+        copy=NotifyCopy(tag="#bettbox"),
     )
 
     # Then the hashtag is the very last line, unstyled (searchable).
@@ -143,8 +142,7 @@ def test_omits_tag_line_when_empty():
         asset_name="awesome-actions-v1.2.3.zip",
         pub_date="2026-08-29",
         html_url="https://github.com/foo/bar/releases/tag/v1.2.3",
-        title="",
-        group_url="",
+        copy=NotifyCopy(),
     )
 
     # Then the message does not end with a newline.
@@ -157,9 +155,7 @@ def test_escapes_dynamic_text_fields():
         asset_name='app <v1.0> & "beta"',
         pub_date="2026-08-29",
         html_url="https://example.com/releases/1",
-        title="",
-        group_url="",
-        description='<b>notes</b> & "quoted"',
+        copy=NotifyCopy(description='<b>notes</b> & "quoted"'),
     )
 
     # Then the asset name and description are HTML-escaped in place.
@@ -185,14 +181,13 @@ def test_text_notification_all_success_returns_true():
     assert client.send_message.await_count == len(_text_cfg().chat_ids)
 
 def test_text_notification_includes_tag():
-    """cfg.notify_tag reaches the sent text as its last line."""
+    """copy.tag reaches the sent text as its last line."""
     # Given a config carrying a project tag:
-    cfg = _text_cfg()
-    cfg.notify_tag = "#bettbox"
+    copy = NotifyCopy(tag="#bettbox")
     client = _fake_client()
 
     # When the text notification is sent:
-    ok = asyncio.run(notify(RELEASE_NO_ASSETS, cfg, client, ()))
+    ok = asyncio.run(notify(RELEASE_NO_ASSETS, copy, _text_cfg(), client, ()))
 
     # Then the delivered message ends with that hashtag.
     assert ok is True
@@ -305,7 +300,8 @@ def test_album_splits_more_than_ten_assets_into_batches():
 
     client, stream_patch = _album_client(_upload(names))
     with stream_patch:
-        ok = asyncio.run(notify(release, cfg, client, release["assets"]))
+        ok = asyncio.run(notify(release, NotifyCopy(), cfg, client,
+                                release["assets"]))
 
     assert ok is True
     calls = client.send_file.call_args_list
@@ -323,7 +319,7 @@ def test_client_is_never_disconnected_by_the_notifier(monkeypatch):
 
     monkeypatch.setattr(notifier, "stream_asset", _boom)
 
-    ok = asyncio.run(notify(RELEASE_2_ASSETS, _text_cfg(), client,
+    ok = asyncio.run(notify(RELEASE_2_ASSETS, NotifyCopy(), _text_cfg(), client,
                             RELEASE_2_ASSETS["assets"]))
 
     assert ok is False
