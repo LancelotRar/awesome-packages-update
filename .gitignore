@@ -1,0 +1,8 @@
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.venv/
+
+# 本地 agent 上下文：只在本机使用，不入库
+/AGENTS.md
+/docs/

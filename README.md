@@ -1,0 +1,164 @@
+# awesome-packages-update
+
+监控一组上游软件仓库的 Release，把新版本及其安装包转发到 Telegram 频道。
+
+单 workflow + 单 job + 清单驱动：新增一个软件只需在 [`projects.yaml`](projects.yaml) 里加一条配置，不用改任何 workflow。
+
+## 工作方式
+
+1. `.github/workflows/check-releases.yml` 每天 07:30（UTC+8）触发，也可以在 Actions 页面手动触发。
+2. 检查阶段最多 8 个并发请求 GitHub API；通知阶段逐项串行，避免触发 Telegram 洪泛限制。
+3. 每一项检测到更新才投递（已关闭的条目除外）；投递成功后把标记写回 `data/state.json` 并提交，下一次运行据此判断是否变化。
+4. 单项失败不影响其他项；同一项连续失败 3 次才向管理会话告警。
+
+### 检测策略
+
+| 策略 | 标记 | 适用场景 |
+| --- | --- | --- |
+| `latest` | 最新**稳定版** Release 的 `tag` + 命中资产指纹（跳过 draft 与 prerelease） | 常规发版 |
+| `tag` | 指定 tag 下匹配资产的 `(name, size, updated_at)` 指纹 | 长期不换 tag、只原地替换资产的滚动 Release |
+
+`latest` 的 marker 形如 `v1.19.8@<sha256>`，由 release tag 与「命中 `asset_include` / `asset_exclude` 的资产」共同决定：
+
+- 新 tag → 通知；
+- 同 tag 但命中资产被替换、重传或新增 → 通知；
+- 只改发布说明等元数据、命中资产没动 → 不通知。
+
+GitHub API 不提供资产内容哈希，所以同名同大小但被重新上传的资产也算一次替换。
+
+项目里所有对外记录和展示的时间都换算成北京时间（`+08:00`）：`state.json` 的 `last_checked` 与 Telegram 通知里的发布时间。GitHub API 返回的 `Z` 时间戳在入库和投递前统一转换；`latest` 的 marker 与 `tag` 策略的指纹都不是时间，保持原样。
+
+#### 按 tag 通配选择
+
+一个仓库同时为多条产品线发 Release 时（例如 `bitwarden/clients` 的 `desktop-*`、`cli-*`、`browser-*`、`web-*`），可以在 `latest` 条目上加可选的 `release_tag_include`（非空字符串列表），只跟随其中一系列：
+
+- 先取仓库的 Release 列表，丢弃 draft、prerelease 和没有 tag 的条目；
+- 再用 glob（`*`、`?` 等，不区分大小写）逐条匹配，任一 pattern 命中即可；
+- 在命中项中取 `published_at` 最新的一个，读取该 tag 的完整 Release 及其资产；
+- 标记仍为该 Release 的 tag + 命中资产指纹，与不写此字段时相同。
+
+没有任何条目命中时按检测失败处理：本次不投递、标记不推进、下次运行重试，不会静默跳过。不带 `release_tag_include` 的 `latest` 条目同理：如果仓库只有 prerelease 或 draft，会以「没有稳定版」失败，而不是把预发布当成正式版。该字段只与 `latest` 搭配，写在 `strategy: tag` 条目上会被清单校验拒绝；显式写成 `[]` 同样会被拒绝，省略该字段才表示「不按 tag 过滤」。
+
+```yaml
+  - id: bitwarden-win
+    repo: bitwarden/clients
+    strategy: latest
+    release_tag_include: ["desktop-v*"]
+    asset_include: "bitwarden+portable+.exe, bitwarden+installer+.exe"
+    asset_exclude: "commercial"
+    notify:
+      title: "bitwarden-win 新版本发布！"
+      description: "开源密码管理器的 Windows 桌面客户端"
+      group_url: ""
+      channel_url: ""
+      project_url: "https://github.com/bitwarden/clients"
+      tag: "#bitwarden_win"
+```
+
+### 资产过滤
+
+`asset_include` / `asset_exclude` 使用同一种语法：
+
+- 逗号分隔 = 任一匹配（OR）
+- 加号连接 = 同时匹配（AND）
+- `exclude` 优先于 `include`
+- 以 `.` 开头的 token 按后缀匹配，其余按不区分大小写的子串匹配
+
+声明了 `asset_include` 却一个资产都没命中时，该条按投递失败处理：不推进 marker，下次运行重试。这样过滤式过期会暴露出来，而不是静默退化成只有文字的通知。
+
+例：`.apk+arm64-v8a, .dmg+arm64` 表示「APK 且文件名含 arm64-v8a」或「DMG 且含 arm64」。
+
+## 新增监控项
+
+在 `projects.yaml` 的 `projects` 下追加一条：
+
+```yaml
+  - id: example
+    repo: owner/name
+    strategy: latest
+    asset_include: ".apk"
+    asset_exclude: ""
+    notify:
+      title: "Example 新版本发布！"
+      description: "一句话介绍"
+      group_url: "https://t.me/example_group"
+      channel_url: "https://t.me/example_channel"
+      project_url: "https://github.com/owner/name"
+      tag: "#example"
+```
+
+`id` 只能用小写字母、数字和 `-`，且不可重复。`notify` 下的字段留空时，对应行不会出现在消息里。
+
+`enabled` 可选，默认 `true`。设为 `false` 时该条被完全跳过：不检查、不投递、不更新该条在 `state.json` 里的记录（文件内容不变，因此不会产生提交）、不参与连续失败告警，运行摘要里显示为 `⏭ disabled`；改回 `true` 后从原来的 marker 继续，不需要重建配置。显式用 `PROJECT=<id>` 指定一个已关闭的条目会报错退出；所有条目都关闭时运行仍成功，退出码 0。
+
+`notify.tag` 统一写成 `#` + `id`，并把 `id` 里的 `-` 换成 `_`：Telegram 话题标签只接受字母、数字和下划线，`bitwarden-win` 因此写作 `#bitwarden_win`。
+
+首次接入时建议先按当前版本写入 `data/state.json` 的 `marker`，避免切换后重复推送一次旧版本；或者接受首次运行推送一次当前最新版。
+
+## 仓库 secrets
+
+| Secret | 用途 |
+| --- | --- |
+| `TG_BOT_TOKEN_03BOT` | Telegram bot token（@BotFather 申请） |
+| `TG_CHAT_ID_UPDATE_CHANNEL` | 投递目标 chat id，多个用逗号分隔 |
+| `TG_API_ID` / `TG_API_HASH` | Telethon 应用凭据 |
+| `TG_CHAT_ID_ADMIN` | 连续失败告警的目标 chat id；未设置时只在日志里告警 |
+
+`GITHUB_TOKEN` 由 Actions 自动注入，用于提升 GitHub API 限额。
+
+## 本地运行
+
+```bash
+pip install -r scripts/requirements.txt
+
+# 只检查，不投递
+PROJECT=all python scripts/run_checks.py
+
+# 单测
+python -m pytest scripts/tests -q
+
+# 审计资产过滤（需要 GITHUB_TOKEN）
+GITHUB_TOKEN=$(gh auth token) python scripts/audit_assets.py
+```
+
+本地运行同样需要 `TG_BOT_TOKEN` / `TG_CHAT_ID` / `TG_API_ID` / `TG_API_HASH`；仅做检测时可以只设 `GITHUB_TOKEN`（可选）。
+
+## 日志
+
+每行是一条事件，而不是一句散文：
+
+```
+2026-11-13T07:30:02.517+08:00 INFO  [run_checks gh-19372648512-1] update_detected item=bettbox repo=o/bettbox previous=2026-11-10T07:00:00+08:00 marker=2026-11-12T01:52:43+08:00 assets=3
+```
+
+- `[<entry_point> <run_id>]` 标明这条日志由哪个入口、哪次运行产生；`run_id` 取自
+  `GITHUB_RUN_ID` / `GITHUB_RUN_ATTEMPT`（本地运行为 `local-xxxxxxxx`）。并发扫描期间
+  每行还带 `item=<id>`，`github_api` / `notifier` 等子模块继承同一上下文。
+- `WARNING` / `ERROR` 自动转成 Actions 注解（`::warning title=<event>::…`、
+  `::error title=<event>::…`），不需要在消息里手写。
+- `LOG_LEVEL=DEBUG` 打开扫描与重试细节；`LOG_FORMAT=json` 每行输出一个 JSON 对象
+  （JSON 模式不输出注解，避免破坏 JSON 流）；`LOG_ANNOTATIONS=0` 可在 Actions 里
+  关掉注解。
+- 字段名形如 `*token*`、`*secret*`、`*password*`、`*api_hash*` 的值会被替换成 `***`。
+
+这些字段要回答三个问题：这次运行投递、失败、跳过各多少；某个条目为什么没投出去；
+GitHub、Telegram 是否在退避重试。新增日志时优先挂到已有事件上，不要新造措辞。
+
+## 目录
+
+```
+.github/workflows/check-releases.yml   唯一入口
+projects.yaml                          监控清单
+data/state.json                        持久化标记
+scripts/run_checks.py                  主流程
+scripts/logs.py                        结构化日志（事件、运行上下文、Actions 注解）
+scripts/scan.py                        检测 + 资产匹配（runner 与 audit 共用）
+scripts/env.py                         环境变量解析（chat id、必填项）
+scripts/watchlist.py                   清单加载与校验
+scripts/detector.py                    latest / tag 检测
+scripts/state.py                       data/state.json 原子读写
+scripts/timestamps.py                  北京时间（UTC+8）时间戳工具
+scripts/github_api.py                  GitHub API 客户端
+scripts/notifier.py                    Telegram 投递
+scripts/tests/                         单元测试
+```
