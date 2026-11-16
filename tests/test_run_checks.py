@@ -3,6 +3,8 @@
 import asyncio
 from pathlib import Path
 
+import pytest
+
 import run_checks
 import scan as scan_module
 from detector import Detection
@@ -40,7 +42,7 @@ def _clear_env(monkeypatch):
 def _run(monkeypatch, tmp_path, *, markers=None, notify_ok=True,
          items=None, project=None, force=False, admin=None,
          detected=None, summary=None, telegram_env=True, opened=None,
-         open_error=None, matched=None):
+         open_error=None, matched=None, crash_on=None):
     items = items or _items()
     markers = markers or {}
     if matched is None:
@@ -83,6 +85,8 @@ def _run(monkeypatch, tmp_path, *, markers=None, notify_ok=True,
 
     async def fake_notify(release, copy, cfg, client, assets, token):
         delivered.append(copy.title)
+        if crash_on == copy.title:
+            raise KeyboardInterrupt
         return notify_ok
 
     async def fake_send_text(text, cfg, client=None):
@@ -148,6 +152,16 @@ def test_one_detection_failure_does_not_block_the_other(monkeypatch, tmp_path):
     assert state["a"]["marker"] == "m2"
     assert state["b"]["failures"] == 1
     assert "api down" in state["b"]["last_error"]
+
+def test_completed_items_survive_a_mid_run_crash(monkeypatch, tmp_path):
+    """A crash while delivering item b must not lose item a's marker."""
+    with pytest.raises(KeyboardInterrupt):
+        _run(monkeypatch, tmp_path, crash_on="b")
+
+    state = load_state(tmp_path / "state.json")
+    assert state["a"]["marker"] == "m2"
+    assert "b" not in state
+
 
 def test_force_delivers_even_when_marker_matches(monkeypatch, tmp_path):
     save_state(tmp_path / "state.json", {"a": {"marker": "m2"},
