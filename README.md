@@ -10,6 +10,7 @@
 2. 检查阶段最多 8 个并发请求 GitHub API；通知阶段逐项串行，避免触发 Telegram 洪泛限制。
 3. 每一项检测到更新才投递（已关闭的条目除外）；投递成功后把标记写回 `data/state.json` 并提交，下一次运行据此判断是否变化。
 4. 单项失败不影响其他项；同一项连续失败 3 次才向管理会话告警。
+5. `.github/workflows/audit-assets.yml` 每周检查一次资产过滤是否还能命中当前 Release；有失败时把具体条目推到管理会话。
 
 ### 检测策略
 
@@ -117,8 +118,8 @@ pip install ruff pytest
 # 只检查，不投递
 PROJECT=all python scripts/run_checks.py
 
-# 静态检查 + 单测
-python -m ruff check scripts
+# 静态检查 + 单测（CI 在每次 push / PR 上跑同样两条）
+python -m ruff check scripts tests
 python -m pytest tests -q
 
 # 审计资产过滤（需要 GITHUB_TOKEN）
@@ -151,7 +152,9 @@ GitHub、Telegram 是否在退避重试。新增日志时优先挂到已有事�
 ## 目录
 
 ```
-.github/workflows/check-releases.yml   唯一入口
+.github/workflows/check-releases.yml   每日检测与投递
+.github/workflows/audit-assets.yml     每周资产过滤审计
+.github/workflows/ci.yml               每次 push / PR 的 lint + 单测
 projects.yaml                          监控清单
 data/state.json                        持久化标记
 scripts/run_checks.py                  主流程
@@ -164,5 +167,6 @@ scripts/state.py                       data/state.json 原子读写
 scripts/timestamps.py                  北京时间（UTC+8）时间戳工具
 scripts/github_api.py                  GitHub API 客户端
 scripts/notifier.py                    Telegram 投递
-tests/                                 单元测试
+scripts/audit_assets.py                资产过滤审计
+tests/                                 单元测试（导入路径由 pyproject.toml 提供）
 ```

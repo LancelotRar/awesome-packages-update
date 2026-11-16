@@ -1,0 +1,39 @@
+name: ci
+
+# 每次 push / PR 都跑静态检查与全部单测。发布 workflow 只负责检测、
+# 投递与提交状态，不在这里兼职跑测试。
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install -r scripts/requirements.txt
+          python3 -m pip install pytest==9.1.1 ruff==0.16.5
+
+      - name: Lint
+        run: python3 -m ruff check scripts tests
+
+      - name: Unit tests
+        run: python3 -m pytest tests -q

@@ -11,6 +11,7 @@ from pathlib import Path
 
 import yaml
 
+
 _ROOT = Path(__file__).resolve().parents[1]
 _ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 _MAX_DESCRIPTION = 40
@@ -18,18 +19,15 @@ _MAX_DESCRIPTION = 40
 # Two entries may track one repository when they deliver different assets.
 _ALLOWED_DUPLICATE_REPOS = {"FongMi/Release"}
 
-
 def _items():
     data = yaml.safe_load((_ROOT / "projects.yaml").read_text(encoding="utf-8"))
     return data["projects"]
-
 
 def test_ids_are_unique_and_well_formed():
     ids = [item["id"] for item in _items()]
 
     assert len(ids) == len(set(ids)), "duplicate id"
     assert all(_ID_RE.match(pid) for pid in ids), ids
-
 
 def test_tags_are_derived_from_the_id():
     bad = [
@@ -39,7 +37,6 @@ def test_tags_are_derived_from_the_id():
     ]
 
     assert bad == [], f"tag must be '#' + id with '-' -> '_': {bad}"
-
 
 def test_descriptions_are_present_and_short():
     bad = [
@@ -51,7 +48,6 @@ def test_descriptions_are_present_and_short():
 
     assert bad == [], f"description must be 1..{_MAX_DESCRIPTION} chars: {bad}"
 
-
 def test_only_known_repositories_appear_twice():
     dupes = {
         repo for repo, count in Counter(i["repo"] for i in _items()).items()
@@ -59,7 +55,6 @@ def test_only_known_repositories_appear_twice():
     }
 
     assert dupes <= _ALLOWED_DUPLICATE_REPOS, dupes - _ALLOWED_DUPLICATE_REPOS
-
 
 def test_project_urls_point_at_their_repository():
     bad = [
@@ -69,7 +64,6 @@ def test_project_urls_point_at_their_repository():
     ]
 
     assert bad == []
-
 
 def test_file_has_no_trailing_whitespace():
     text = (_ROOT / "projects.yaml").read_text(encoding="utf-8")

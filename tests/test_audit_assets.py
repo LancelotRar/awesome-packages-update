@@ -1,11 +1,7 @@
 """Unit tests for ``audit_assets`` — zero-match detection without network."""
 
 import asyncio
-import sys
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 import audit_assets
 import scan as scan_module
@@ -20,18 +16,15 @@ _TG_VALUES = {
     "TG_CHAT_ID_ADMIN": "999",
 }
 
-
 def _item(pid: str, *, enabled: bool = True, include: str = ".apk") -> WatchItem:
     return WatchItem(id=pid, repo=f"o/{pid}", strategy="latest",
                      notify=NotifyCopy(title=pid), asset_include=include,
                      enabled=enabled)
 
-
 def _detection(tag: str = "v1", *, assets: int = 1) -> Detection:
     return Detection(release={"tag_name": tag,
                               "assets": [{"name": f"a{i}"} for i in range(assets)]},
                      marker="m", asset_count=assets)
-
 
 def _patch(monkeypatch, items, *, detected=None, matched=None, error=None):
     monkeypatch.setenv("WATCHLIST", "unused.yaml")
@@ -50,18 +43,15 @@ def _patch(monkeypatch, items, *, detected=None, matched=None, error=None):
     monkeypatch.setattr(scan_module, "get_matching_assets",
                         lambda release, include, exclude: matched or [])
 
-
 def test_all_items_matching_succeeds(monkeypatch):
     _patch(monkeypatch, [_item("a")], detected=_detection(), matched=[{"name": "x"}])
 
     assert audit_assets.main() == 0
 
-
 def test_zero_match_fails(monkeypatch):
     _patch(monkeypatch, [_item("a")], detected=_detection(assets=2), matched=[])
 
     assert audit_assets.main() == 1
-
 
 def test_release_without_assets_fails_when_a_filter_is_set(monkeypatch):
     """0 assets + include filter is a failure, same policy as the runner."""
@@ -69,30 +59,25 @@ def test_release_without_assets_fails_when_a_filter_is_set(monkeypatch):
 
     assert audit_assets.main() == 1
 
-
 def test_release_without_assets_is_a_warning_without_a_filter(monkeypatch):
     _patch(monkeypatch, [_item("a", include="")],
            detected=_detection(assets=0), matched=[])
 
     assert audit_assets.main() == 0
 
-
 def test_detection_error_fails(monkeypatch):
     _patch(monkeypatch, [_item("a")], error=RuntimeError("boom"))
 
     assert audit_assets.main() == 1
-
 
 def test_disabled_items_are_skipped(monkeypatch):
     _patch(monkeypatch, [_item("a", enabled=False)], matched=[])
 
     assert audit_assets.main() == 0
 
-
 # ---------------------------------------------------------------------------
 # Telegram failure report
 # ---------------------------------------------------------------------------
-
 
 def _telegram_env(monkeypatch, *, present: bool) -> None:
     for name, value in _TG_VALUES.items():
@@ -100,7 +85,6 @@ def _telegram_env(monkeypatch, *, present: bool) -> None:
             monkeypatch.setenv(name, value)
         else:
             monkeypatch.delenv(name, raising=False)
-
 
 def _capture_send(monkeypatch, ok: bool = True) -> list[tuple[str, list[int]]]:
     sent: list[tuple[list[str], list[int]]] = []
@@ -111,7 +95,6 @@ def _capture_send(monkeypatch, ok: bool = True) -> list[tuple[str, list[int]]]:
 
     monkeypatch.setattr(audit_assets, "_send", fake_send)
     return sent
-
 
 def test_zero_match_pushes_report_naming_the_item(monkeypatch):
     """A failing audit sends the admin chat the item and its filter."""
@@ -130,7 +113,6 @@ def test_zero_match_pushes_report_naming_the_item(monkeypatch):
     assert ".apk+arm64" in text
     assert chat_ids == [999]
 
-
 def test_multiple_problems_send_one_aggregated_message(monkeypatch):
     """Three broken items -> a single message listing all of them."""
     _patch(monkeypatch, [
@@ -148,7 +130,6 @@ def test_multiple_problems_send_one_aggregated_message(monkeypatch):
     for pid in ("a", "b", "c"):
         assert f"<b>{pid}</b>" in text
 
-
 def test_detection_error_pushes_report(monkeypatch):
     _patch(monkeypatch, [_item("a")], error=RuntimeError("boom"))
     _telegram_env(monkeypatch, present=True)
@@ -158,7 +139,6 @@ def test_detection_error_pushes_report(monkeypatch):
     assert len(sent) == 1
     assert "boom" in sent[0][0][0]
 
-
 def test_no_report_when_telegram_is_not_configured(monkeypatch):
     _patch(monkeypatch, [_item("a")], detected=_detection(assets=2), matched=[])
     _telegram_env(monkeypatch, present=False)
@@ -166,7 +146,6 @@ def test_no_report_when_telegram_is_not_configured(monkeypatch):
 
     assert audit_assets.main() == 1
     assert sent == []
-
 
 def test_success_sends_no_report(monkeypatch):
     _patch(monkeypatch, [_item("a")], detected=_detection(), matched=[{"name": "x"}])
@@ -176,7 +155,6 @@ def test_success_sends_no_report(monkeypatch):
     assert audit_assets.main() == 0
     assert sent == []
 
-
 def test_report_is_capped_and_mentions_the_remainder(monkeypatch):
     problems = [(f"p{i}", "0 assets matched") for i in range(30)]
 
@@ -184,7 +162,6 @@ def test_report_is_capped_and_mentions_the_remainder(monkeypatch):
 
     assert text.count("• ") == audit_assets._MAX_REPORTED
     assert "另有 5 项" in text
-
 
 def test_report_escapes_html_and_clips_long_details():
     long_detail = "x" * 500
@@ -197,7 +174,6 @@ def test_report_escapes_html_and_clips_long_details():
     assert "<script>" not in text
     assert "…" in text
     assert max(len(line) for line in text.splitlines()) < 220
-
 
 def test_send_uses_the_environment_credentials(monkeypatch):
     """``_send`` reads the TG_* env vars and delivers through the notifier."""
@@ -212,7 +188,6 @@ def test_send_uses_the_environment_credentials(monkeypatch):
         assert audit_assets._send(["hi"], [999]) is True
 
     assert client.send_message.await_args.args == (999, "hi")
-
 
 def test_deliver_reuses_one_client_for_all_messages():
     """Several messages share one session, closed only after the last send."""

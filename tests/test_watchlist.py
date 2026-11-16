@@ -1,11 +1,8 @@
 """Unit tests for ``watchlist`` — manifest loading and validation."""
 
-import sys
 from pathlib import Path
 
 import pytest
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 from watchlist import STRATEGY_LATEST, STRATEGY_TAG, load_watchlist
 
@@ -14,7 +11,6 @@ def _write(tmp_path: Path, body: str) -> Path:
     path = tmp_path / "projects.yaml"
     path.write_text(body, encoding="utf-8")
     return path
-
 
 def test_loads_items_in_file_order(tmp_path):
     path = _write(tmp_path, """
@@ -41,7 +37,6 @@ projects:
     assert items[1].release_tag == "module"
     assert items[1].asset_exclude == "thunder"
 
-
 def test_duplicate_id_rejected(tmp_path):
     path = _write(tmp_path, """
 projects:
@@ -52,7 +47,6 @@ projects:
     with pytest.raises(RuntimeError, match="duplicate id 'dup'"):
         load_watchlist(path)
 
-
 def test_unknown_strategy_rejected(tmp_path):
     path = _write(tmp_path, """
 projects:
@@ -61,7 +55,6 @@ projects:
 
     with pytest.raises(RuntimeError, match="strategy 'rss'"):
         load_watchlist(path)
-
 
 def test_tag_strategy_requires_release_tag(tmp_path):
     path = _write(tmp_path, """
@@ -72,7 +65,6 @@ projects:
     with pytest.raises(RuntimeError, match="requires 'release_tag'"):
         load_watchlist(path)
 
-
 def test_latest_strategy_rejects_release_tag(tmp_path):
     path = _write(tmp_path, """
 projects:
@@ -81,7 +73,6 @@ projects:
 
     with pytest.raises(RuntimeError, match="only valid with strategy 'tag'"):
         load_watchlist(path)
-
 
 def test_release_tag_include_parsed_on_latest(tmp_path):
     path = _write(tmp_path, """
@@ -96,7 +87,6 @@ projects:
 
     assert items[0].release_tag_include == ("desktop-*", "*-desktop")
 
-
 def test_release_tag_include_defaults_to_empty(tmp_path):
     path = _write(tmp_path, """
 projects:
@@ -104,7 +94,6 @@ projects:
 """)
 
     assert load_watchlist(path)[0].release_tag_include == ()
-
 
 def test_release_tag_include_rejected_on_tag_strategy(tmp_path):
     path = _write(tmp_path, """
@@ -122,7 +111,6 @@ projects:
     ):
         load_watchlist(path)
 
-
 def test_release_tag_include_rejects_explicit_empty_list(tmp_path):
     path = _write(tmp_path, """
 projects:
@@ -132,7 +120,6 @@ projects:
     with pytest.raises(RuntimeError,
                        match="'release_tag_include' must not be an empty list"):
         load_watchlist(path)
-
 
 def test_release_tag_include_must_be_a_list(tmp_path):
     path = _write(tmp_path, """
@@ -144,7 +131,6 @@ projects:
                        match="'release_tag_include' must be a list"):
         load_watchlist(path)
 
-
 def test_release_tag_include_rejects_non_string_entries(tmp_path):
     path = _write(tmp_path, """
 projects:
@@ -155,7 +141,6 @@ projects:
                        match="'release_tag_include' entries must be non-empty"):
         load_watchlist(path)
 
-
 def test_enabled_defaults_to_true(tmp_path):
     path = _write(tmp_path, """
 projects:
@@ -164,7 +149,6 @@ projects:
 
     assert load_watchlist(path)[0].enabled is True
 
-
 def test_enabled_false_is_parsed(tmp_path):
     path = _write(tmp_path, """
 projects:
@@ -172,7 +156,6 @@ projects:
 """)
 
     assert load_watchlist(path)[0].enabled is False
-
 
 def test_enabled_must_be_boolean(tmp_path):
     path = _write(tmp_path, """
@@ -184,7 +167,6 @@ projects:
                        match="'enabled' must be true or false"):
         load_watchlist(path)
 
-
 def test_unknown_project_key_rejected(tmp_path):
     path = _write(tmp_path, """
 projects:
@@ -194,11 +176,9 @@ projects:
     with pytest.raises(RuntimeError, match="unknown key"):
         load_watchlist(path)
 
-
 def test_missing_file_rejected(tmp_path):
     with pytest.raises(RuntimeError, match="Watch list not found"):
         load_watchlist(tmp_path / "absent.yaml")
-
 
 def test_empty_projects_rejected(tmp_path):
     path = _write(tmp_path, "projects: []\n")

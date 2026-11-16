@@ -1,0 +1,4 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Modules live flat in ``scripts/`` and import each other by short name.
+pythonpath = ["scripts"]

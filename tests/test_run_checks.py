@@ -1,10 +1,7 @@
 """Unit tests for ``run_checks`` — one job, many watch items."""
 
 import asyncio
-import sys
 from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 import run_checks
 import scan as scan_module
@@ -21,7 +18,6 @@ def _items():
                   notify=NotifyCopy(title="b")),
     ]
 
-
 def _detection(marker: str) -> Detection:
     return Detection(
         release={
@@ -35,13 +31,11 @@ def _detection(marker: str) -> Detection:
         asset_count=0,
     )
 
-
 def _clear_env(monkeypatch):
     """Remove every env var that changes how ``main()`` resolves paths."""
     for var in ("PROJECT", "FORCE", "TG_CHAT_ID_ADMIN", "GITHUB_STEP_SUMMARY",
                 "WATCHLIST", "STATE_FILE"):
         monkeypatch.delenv(var, raising=False)
-
 
 def _run(monkeypatch, tmp_path, *, markers=None, notify_ok=True,
          items=None, project=None, force=False, admin=None,
@@ -113,7 +107,6 @@ def _run(monkeypatch, tmp_path, *, markers=None, notify_ok=True,
     code = asyncio.run(run_checks.main())
     return code, delivered, alerts, load_state(tmp_path / "state.json")
 
-
 def test_delivers_each_item_and_persists_marker(monkeypatch, tmp_path):
     code, delivered, _alerts, state = _run(monkeypatch, tmp_path)
 
@@ -121,7 +114,6 @@ def test_delivers_each_item_and_persists_marker(monkeypatch, tmp_path):
     assert delivered == ["a", "b"]
     assert state["a"]["marker"] == "m2"
     assert state["a"]["failures"] == 0
-
 
 def test_unchanged_marker_skips_delivery(monkeypatch, tmp_path):
     save_state(tmp_path / "state.json", {
@@ -135,7 +127,6 @@ def test_unchanged_marker_skips_delivery(monkeypatch, tmp_path):
     assert delivered == []
     assert state["a"]["last_checked"]
 
-
 def test_failed_delivery_keeps_marker_and_counts(monkeypatch, tmp_path):
     code, delivered, _alerts, state = _run(
         monkeypatch, tmp_path, notify_ok=False,
@@ -145,7 +136,6 @@ def test_failed_delivery_keeps_marker_and_counts(monkeypatch, tmp_path):
     assert len(delivered) == 2
     assert state["a"]["marker"] == ""
     assert state["a"]["failures"] == 1
-
 
 def test_one_detection_failure_does_not_block_the_other(monkeypatch, tmp_path):
     code, delivered, _alerts, state = _run(
@@ -159,7 +149,6 @@ def test_one_detection_failure_does_not_block_the_other(monkeypatch, tmp_path):
     assert state["b"]["failures"] == 1
     assert "api down" in state["b"]["last_error"]
 
-
 def test_force_delivers_even_when_marker_matches(monkeypatch, tmp_path):
     save_state(tmp_path / "state.json", {"a": {"marker": "m2"},
                                          "b": {"marker": "m2"}})
@@ -171,7 +160,6 @@ def test_force_delivers_even_when_marker_matches(monkeypatch, tmp_path):
     assert code == 0
     assert delivered == ["a", "b"]
 
-
 def test_unknown_project_fails_without_delivery(monkeypatch, tmp_path):
     code, delivered, _alerts, _state = _run(
         monkeypatch, tmp_path, project="nope",
@@ -179,7 +167,6 @@ def test_unknown_project_fails_without_delivery(monkeypatch, tmp_path):
 
     assert code == 1
     assert delivered == []
-
 
 def test_alert_after_three_consecutive_failures(monkeypatch, tmp_path):
     save_state(tmp_path / "state.json", {
@@ -198,7 +185,6 @@ def test_alert_after_three_consecutive_failures(monkeypatch, tmp_path):
     assert "a" in alerts[0]
     assert state["a"]["failures"] == 3
     assert state["a"]["alerted"] is True
-
 
 def _capture_default_paths(monkeypatch) -> tuple[Path, Path]:
     """Run main() without WATCHLIST/STATE_FILE, returning resolved paths.
@@ -225,20 +211,17 @@ def _capture_default_paths(monkeypatch) -> tuple[Path, Path]:
     assert asyncio.run(run_checks.main()) == 0
     return seen[0], seen[1]
 
-
 def test_default_watchlist_resolves_to_repository_root(monkeypatch):
     watchlist, _state = _capture_default_paths(monkeypatch)
 
     repo_root = Path(run_checks.__file__).resolve().parent.parent
     assert watchlist == repo_root / "projects.yaml"
 
-
 def test_default_state_file_resolves_to_repository_root(monkeypatch):
     _watchlist, state = _capture_default_paths(monkeypatch)
 
     repo_root = Path(run_checks.__file__).resolve().parent.parent
     assert state == repo_root / "data" / "state.json"
-
 
 def _mixed_items():
     return [
@@ -247,7 +230,6 @@ def _mixed_items():
         WatchItem(id="b", repo="o/b", strategy="latest",
                   notify=NotifyCopy(title="b")),
     ]
-
 
 def test_disabled_item_is_not_detected_or_delivered(monkeypatch, tmp_path):
     detected: list[str] = []
@@ -261,7 +243,6 @@ def test_disabled_item_is_not_detected_or_delivered(monkeypatch, tmp_path):
     assert delivered == ["b"]
     assert "a" not in state
 
-
 def test_selecting_a_disabled_item_fails(monkeypatch, tmp_path):
     code, delivered, _alerts, state = _run(
         monkeypatch, tmp_path, items=_mixed_items(), project="a",
@@ -271,14 +252,12 @@ def test_selecting_a_disabled_item_fails(monkeypatch, tmp_path):
     assert delivered == []
     assert "a" not in state
 
-
 def test_force_does_not_reenable_a_disabled_item(monkeypatch, tmp_path):
     _code, delivered, _alerts, _state = _run(
         monkeypatch, tmp_path, items=_mixed_items(), force=True,
     )
 
     assert delivered == ["b"]
-
 
 def test_summary_follows_watch_list_order(monkeypatch, tmp_path):
     summary = tmp_path / "summary.md"
@@ -296,7 +275,6 @@ def test_summary_follows_watch_list_order(monkeypatch, tmp_path):
     text = summary.read_text(encoding="utf-8")
     assert text.index("| a |") < text.index("| b | ⏭ disabled |") < text.index("| c |")
 
-
 def test_all_items_disabled_succeeds_without_telegram_env(monkeypatch, tmp_path):
     items = [
         WatchItem(id="a", repo="o/a", strategy="latest",
@@ -311,7 +289,6 @@ def test_all_items_disabled_succeeds_without_telegram_env(monkeypatch, tmp_path)
     assert delivered == []
     assert state == {}
 
-
 def test_one_client_is_reused_for_every_delivery(monkeypatch, tmp_path):
     opened: list = []
 
@@ -322,7 +299,6 @@ def test_one_client_is_reused_for_every_delivery(monkeypatch, tmp_path):
     assert code == 0
     assert delivered == ["a", "b"]
     assert len(opened) == 1
-
 
 def test_no_client_is_opened_when_nothing_needs_delivery(monkeypatch, tmp_path):
     save_state(tmp_path / "state.json", {
@@ -339,7 +315,6 @@ def test_no_client_is_opened_when_nothing_needs_delivery(monkeypatch, tmp_path):
     assert delivered == []
     assert opened == []
 
-
 def test_client_open_failure_is_attempted_once(monkeypatch, tmp_path):
     opened: list = []
 
@@ -351,7 +326,6 @@ def test_client_open_failure_is_attempted_once(monkeypatch, tmp_path):
     assert delivered == []
     assert len(opened) == 1
     assert state["a"]["failures"] == 1
-
 
 def test_zero_matching_assets_fails_before_opening_client(monkeypatch, tmp_path):
     items = [

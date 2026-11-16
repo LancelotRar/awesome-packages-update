@@ -1,17 +1,10 @@
 """Unit tests for ``detector`` — stable-only selection on ``latest``.
 
-``detector`` lives in the parent scripts directory (same convention as
-``test_github_api.py``), so make it importable first. The GitHub-facing
-functions are replaced on the ``detector`` module, which is where
-``detector`` looks them up.
+The GitHub-facing functions are replaced on the ``detector`` module,
+which is where ``detector`` looks them up.
 """
 
-import sys
-from pathlib import Path
-
 import pytest
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 import detector
 from watchlist import STRATEGY_LATEST, WatchItem
@@ -21,7 +14,6 @@ def _item(*patterns: str) -> WatchItem:
     return WatchItem(id="bitwarden-desktop", repo="bitwarden/clients",
                      strategy=STRATEGY_LATEST,
                      release_tag_include=patterns)
-
 
 def _release(tag: str, published: str, *, prerelease: bool = False,
              updated: str = "", assets: int = 0,
@@ -37,7 +29,6 @@ def _release(tag: str, published: str, *, prerelease: bool = False,
                    for i in range(assets)],
     }
 
-
 def _patch(monkeypatch, releases: list[dict], full: dict | None = None):
     """Serve *releases* from the list endpoint and *full* from the by-tag one."""
     monkeypatch.setattr(detector, "fetch_releases", lambda repo, token="": releases)
@@ -45,7 +36,6 @@ def _patch(monkeypatch, releases: list[dict], full: dict | None = None):
         detector, "fetch_release_by_tag",
         lambda repo, tag, token="": full,
     )
-
 
 def test_picks_newest_matching_release_and_counts_its_assets(monkeypatch):
     releases = [
@@ -65,7 +55,6 @@ def test_picks_newest_matching_release_and_counts_its_assets(monkeypatch):
                              + detector.asset_fingerprint(result.release["assets"]))
     assert result.asset_count == 4
 
-
 def test_prerelease_is_never_selected(monkeypatch):
     releases = [
         _release("desktop-v2026.5.0", "2026-05-01T00:00:00Z", prerelease=True),
@@ -78,7 +67,6 @@ def test_prerelease_is_never_selected(monkeypatch):
 
     assert result.release["tag_name"] == "desktop-v2026.4.0"
 
-
 def test_pattern_matching_ignores_case(monkeypatch):
     releases = [_release("Desktop-v2026.1.0", "2026-01-01T00:00:00Z")]
     full = _release("Desktop-v2026.1.0", "2026-01-01T00:00:00Z")
@@ -87,7 +75,6 @@ def test_pattern_matching_ignores_case(monkeypatch):
     result = detector.detect(_item("DESKTOP-*"))
 
     assert result.release["tag_name"] == "Desktop-v2026.1.0"
-
 
 def test_any_pattern_may_match(monkeypatch):
     releases = [
@@ -102,7 +89,6 @@ def test_any_pattern_may_match(monkeypatch):
 
     assert result.release["tag_name"] == "desktop-v2"
 
-
 def test_entries_without_a_tag_are_skipped(monkeypatch):
     releases = [
         {"tag_name": "", "published_at": "2026-09-01T00:00:00Z",
@@ -116,7 +102,6 @@ def test_entries_without_a_tag_are_skipped(monkeypatch):
 
     assert result.release["tag_name"] == "desktop-v1"
 
-
 def test_no_match_raises_naming_repo_and_patterns(monkeypatch):
     _patch(monkeypatch, [_release("cli-v1", "2026-01-01T00:00:00Z")])
 
@@ -126,13 +111,11 @@ def test_no_match_raises_naming_repo_and_patterns(monkeypatch):
     assert "desktop-*" in str(excinfo.value)
     assert "server-*" in str(excinfo.value)
 
-
 def test_selected_tag_vanishing_before_full_fetch_raises(monkeypatch):
     _patch(monkeypatch, [_release("desktop-v1", "2026-01-01T00:00:00Z")], None)
 
     with pytest.raises(RuntimeError, match="desktop-v1"):
         detector.detect(_item("desktop-*"))
-
 
 def test_without_tag_filter_picks_newest_stable_release(monkeypatch):
     releases = [
@@ -154,7 +137,6 @@ def test_without_tag_filter_picks_newest_stable_release(monkeypatch):
                              + detector.asset_fingerprint(result.release["assets"]))
     assert result.asset_count == 3
 
-
 def test_draft_release_is_never_selected(monkeypatch):
     draft = _release("v11", "2026-04-01T00:00:00Z")
     draft["draft"] = True
@@ -166,13 +148,11 @@ def test_draft_release_is_never_selected(monkeypatch):
 
     assert result.release["tag_name"] == "v10"
 
-
 def test_no_releases_returns_none(monkeypatch):
     _patch(monkeypatch, [], None)
 
     assert detector.detect(WatchItem(id="plain", repo="o/plain",
                                      strategy=STRATEGY_LATEST)) is None
-
 
 def test_only_prereleases_raises(monkeypatch):
     _patch(monkeypatch, [_release("v1-beta", "2026-01-01T00:00:00Z",
@@ -182,13 +162,11 @@ def test_only_prereleases_raises(monkeypatch):
         detector.detect(WatchItem(id="plain", repo="o/plain",
                                   strategy=STRATEGY_LATEST))
 
-
 def _latest_marker(monkeypatch, item, release) -> str:
     _patch(monkeypatch, [release], release)
     result = detector.detect(item)
     assert result is not None
     return result.marker
-
 
 def test_latest_marker_ignores_release_metadata_edits(monkeypatch):
     """Editing a release bumps updated_at but must not re-notify the version."""
@@ -203,7 +181,6 @@ def test_latest_marker_ignores_release_metadata_edits(monkeypatch):
 
     assert before == after
 
-
 def test_latest_marker_changes_when_a_matched_asset_is_replaced(monkeypatch):
     item = WatchItem(id="plain", repo="o/plain", strategy=STRATEGY_LATEST)
 
@@ -214,7 +191,6 @@ def test_latest_marker_changes_when_a_matched_asset_is_replaced(monkeypatch):
         asset_updated="2026-01-02T00:00:00Z"))
 
     assert before != after
-
 
 def test_latest_marker_ignores_assets_the_filter_rejects(monkeypatch):
     item = WatchItem(id="plain", repo="o/plain", strategy=STRATEGY_LATEST,
@@ -234,7 +210,6 @@ def test_latest_marker_ignores_assets_the_filter_rejects(monkeypatch):
     after = _latest_marker(monkeypatch, item, release)
 
     assert before == after
-
 
 def test_new_tag_changes_the_marker(monkeypatch):
     item = WatchItem(id="plain", repo="o/plain", strategy=STRATEGY_LATEST)
