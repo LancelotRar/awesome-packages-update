@@ -37,6 +37,7 @@ from logs import configure, context, logger
 from notifier import TelegramConfig, notify, open_client, send_text
 from scan import ScanResult, ScanStatus, scan_item
 from state import (
+    State,
     load_state,
     mark_alerted,
     mark_healthy,
@@ -98,19 +99,23 @@ class _Telegram:
         try:
             cfg = telegram_config(self._targets)
             self._client = await open_client(cfg)
+        except ConfigError as e:
+            self._error = str(e)
+            log.error("config_error", error=str(e))
+            return
         except Exception as e:
             self._error = str(e)
             log.error("telegram_client_unavailable", error=str(e))
             return
         self._cfg = cfg
 
-    def config(self, chat_ids: list[int] | None = None) -> TelegramConfig:
-        """Connection config for *chat_ids* (default: delivery targets)."""
+    def config(self, targets: list[int] | None = None) -> TelegramConfig:
+        """Connection config for *targets* (default: delivery targets)."""
         if self._cfg is None or self._client is None:
             raise RuntimeError(self._error or "Telegram client unavailable")
-        if chat_ids is None:
+        if targets is None:
             return self._cfg
-        return replace(self._cfg, chat_ids=chat_ids)
+        return replace(self._cfg, chat_ids=targets)
 
     async def close(self) -> None:
         if self._client is not None:
@@ -127,7 +132,7 @@ def _short(marker: str) -> str:
 
 
 def _admin_ids(raw: str) -> list[int]:
-    """Parse the optional admin chat list, logging a bad value instead of exiting."""
+    """Parse the optional admin chat list, logging instead of exiting."""
     if not raw:
         return []
     try:
@@ -204,7 +209,7 @@ def _alert_text(item: WatchItem, failures: int, last_error: str) -> str:
     )
 
 
-async def _deliver_one(result: ScanResult, state, telegram: _Telegram,
+async def _deliver_one(result: ScanResult, state: State, telegram: _Telegram,
                        force: bool, token: str) -> Outcome:
     """Settle one watch item into state and return its outcome."""
     item = result.item
@@ -259,7 +264,7 @@ async def _deliver_one(result: ScanResult, state, telegram: _Telegram,
         return Outcome(item.id, OutcomeKind.DELIVERY_FAILED, error)
 
 
-async def _alert_failures(items: list[WatchItem], state,
+async def _alert_failures(items: list[WatchItem], state: State,
                           telegram: _Telegram, admin_raw: str) -> bool:
     """Alert the admin chat about items past the failure threshold."""
     admin_ids = _admin_ids(admin_raw)

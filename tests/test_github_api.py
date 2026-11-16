@@ -1,6 +1,4 @@
-"""Unit tests for ``github_api`` — retry / rate-limit hardening (#5).
-
-"""
+"""Unit tests for ``github_api`` — retry / rate-limit hardening (#5)."""
 
 import io
 import time

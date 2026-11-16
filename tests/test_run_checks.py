@@ -42,7 +42,7 @@ def _clear_env(monkeypatch):
 def _run(monkeypatch, tmp_path, *, markers=None, notify_ok=True,
          items=None, project=None, force=False, admin=None,
          detected=None, summary=None, telegram_env=True, opened=None,
-         open_error=None, matched=None, crash_on=None):
+         open_error=None, matched=None, crash_on=None, credentials=True):
     items = items or _items()
     markers = markers or {}
     if matched is None:
@@ -56,6 +56,8 @@ def _run(monkeypatch, tmp_path, *, markers=None, notify_ok=True,
     monkeypatch.setenv("TG_BOT_TOKEN", "TOK")
     monkeypatch.setenv("TG_API_ID", "1")
     monkeypatch.setenv("TG_API_HASH", "H")
+    if not credentials:
+        monkeypatch.delenv("TG_BOT_TOKEN", raising=False)
     monkeypatch.setenv("STATE_FILE", str(tmp_path / "state.json"))
     if summary is not None:
         monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
@@ -152,6 +154,17 @@ def test_one_detection_failure_does_not_block_the_other(monkeypatch, tmp_path):
     assert state["a"]["marker"] == "m2"
     assert state["b"]["failures"] == 1
     assert "api down" in state["b"]["last_error"]
+
+def test_missing_credentials_fail_items_without_exiting(monkeypatch, tmp_path):
+    """A missing bot token is a per-item failure, never a hard exit."""
+    code, delivered, _alerts, state = _run(
+        monkeypatch, tmp_path, credentials=False,
+    )
+
+    assert code == 1
+    assert delivered == []
+    assert state["a"]["failures"] == 1
+
 
 def test_completed_items_survive_a_mid_run_crash(monkeypatch, tmp_path):
     """A crash while delivering item b must not lose item a's marker."""
