@@ -93,16 +93,17 @@ class _Telegram:
         return self._client
 
     async def connect(self) -> None:
-        """Open the client once; later calls reuse it or fail fast."""
+        """Open the client once; later calls reuse it or fail fast.
+
+        A missing/invalid credential raises ``ConfigError`` (a run-level
+        problem); transport/auth failures are recorded and fail later
+        sends item by item.
+        """
         if self._client is not None or self._error:
             return
+        cfg = telegram_config(self._targets)
         try:
-            cfg = telegram_config(self._targets)
             self._client = await open_client(cfg)
-        except ConfigError as e:
-            self._error = str(e)
-            log.error("config_error", error=str(e))
-            return
         except Exception as e:
             self._error = str(e)
             log.error("telegram_client_unavailable", error=str(e))
@@ -132,14 +133,8 @@ def _short(marker: str) -> str:
 
 
 def _admin_ids(raw: str) -> list[int]:
-    """Parse the optional admin chat list, logging instead of exiting."""
-    if not raw:
-        return []
-    try:
-        return chat_ids(raw, "TG_CHAT_ID_ADMIN")
-    except ConfigError as e:
-        log.error("config_error", error=str(e))
-        return []
+    """Parse the optional admin chat list (empty when unset)."""
+    return chat_ids(raw, "TG_CHAT_ID_ADMIN") if raw else []
 
 
 def _select(items: list[WatchItem], raw: str) -> list[WatchItem]:
@@ -265,16 +260,14 @@ async def _deliver_one(result: ScanResult, state: State, telegram: _Telegram,
 
 
 async def _alert_failures(items: list[WatchItem], state: State,
-                          telegram: _Telegram, admin_raw: str) -> bool:
+                          telegram: _Telegram, admin_ids: list[int]) -> bool:
     """Alert the admin chat about items past the failure threshold."""
-    admin_ids = _admin_ids(admin_raw)
     if not admin_ids:
-        if not admin_raw:
-            pending = [item.id for item in items
-                       if needs_alert(state, item.id, FAILURE_ALERT_THRESHOLD)]
-            if pending:
-                log.warning("admin_chat_unset", pending=",".join(pending),
-                            threshold=FAILURE_ALERT_THRESHOLD)
+        pending = [item.id for item in items
+                   if needs_alert(state, item.id, FAILURE_ALERT_THRESHOLD)]
+        if pending:
+            log.warning("admin_chat_unset", pending=",".join(pending),
+                        threshold=FAILURE_ALERT_THRESHOLD)
         return False
 
     alerted = False
@@ -287,6 +280,10 @@ async def _alert_failures(items: list[WatchItem], state: State,
         with context(item=item.id):
             try:
                 await telegram.connect()
+            except ConfigError as e:
+                log.error("config_error", variable=e.variable, error=str(e))
+                return alerted
+            try:
                 if await send_text(text, telegram.config(admin_ids),
                                    telegram.client):
                     mark_alerted(state, item.id)
@@ -319,8 +316,11 @@ async def main() -> int:
     try:
         targets = (chat_ids(required("TG_CHAT_ID"), "TG_CHAT_ID")
                    if active else [])
+        admin_ids = _admin_ids(
+            os.environ.get("TG_CHAT_ID_ADMIN", "").strip()
+        )
     except ConfigError as e:
-        log.error("config_error", error=str(e))
+        log.error("config_error", variable=e.variable, error=str(e))
         return 1
 
     log.info("run_started", items=len(active), skipped=len(skipped), force=force)
@@ -336,15 +336,19 @@ async def main() -> int:
             # Persist as each item settles: a timeout, cancel or crash must
             # not re-deliver an already-notified release on the next run.
             save_state(state_path, state)
+        if not outcomes:
+            # Keep an all-disabled run writing (and normalizing) the state
+            # file exactly as before.
+            save_state(state_path, state)
         log.debug("state_saved", path=str(state_path))
 
         rows = _summary_rows(items, outcomes)
-        alerted = await _alert_failures(
-            active, state, telegram,
-            os.environ.get("TG_CHAT_ID_ADMIN", "").strip(),
-        )
+        alerted = await _alert_failures(active, state, telegram, admin_ids)
         if alerted:
             save_state(state_path, state)
+    except ConfigError as e:
+        log.error("config_error", variable=e.variable, error=str(e))
+        return 1
     finally:
         await telegram.close()
 

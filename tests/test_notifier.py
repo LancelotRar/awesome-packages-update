@@ -18,10 +18,12 @@ RELEASE_NO_ASSETS = {
     "assets": [],
 }
 
+
 def _text_cfg() -> TelegramConfig:
     return TelegramConfig(
         bot_token="TOK", chat_ids=[111, 222], api_id=1, api_hash="H",
     )
+
 
 def _fake_client(send_message_side_effect=None):
     """An in-memory Telegram client; the notifier never owns it."""
@@ -30,6 +32,7 @@ def _fake_client(send_message_side_effect=None):
     client.send_file = AsyncMock(return_value=None)
     client.disconnect = AsyncMock(return_value=None)
     return client
+
 
 def _notify(release: dict, client, assets=()) -> bool:
     return asyncio.run(notify(release, NotifyCopy(), _text_cfg(), client, assets))
@@ -51,6 +54,7 @@ RELEASE_2_ASSETS = {
     ],
 }
 
+
 def _album_client(upload_side_effect):
     """Return (client, stream_patch) with a fake client for album tests.
 
@@ -67,6 +71,7 @@ def _album_client(upload_side_effect):
                          lambda asset, token: fake_resp)
     return client, stream_patch
 
+
 def _upload(uploaded_names: list[str]):
     async def _impl(data, file_name=None, file_size=None, progress_callback=None):
         if file_name not in uploaded_names:
@@ -74,6 +79,7 @@ def _upload(uploaded_names: list[str]):
         return object()
 
     return _impl
+
 
 def test_full_message():
     """Build the complete message with every field populated."""
@@ -104,6 +110,7 @@ def test_full_message():
         "查看完整 Release 日志</a></b>"
     )
 
+
 def test_omits_optional_lines_when_empty():
     """Drop the title, description, and group lines when they are empty."""
     # Given empty optional fields:
@@ -122,6 +129,7 @@ def test_omits_optional_lines_when_empty():
         "查看完整 Release 日志</a></b>"
     )
 
+
 def test_tag_appended_as_last_line():
     """A non-empty tag is appended as the final plain-text line."""
     # Given a message built with a project tag:
@@ -135,6 +143,7 @@ def test_tag_appended_as_last_line():
     # Then the hashtag is the very last line, unstyled (searchable).
     assert message.endswith("\n#bettbox")
 
+
 def test_omits_tag_line_when_empty():
     """An empty tag adds no trailing line — message unchanged."""
     # Given no tag configured:
@@ -147,6 +156,7 @@ def test_omits_tag_line_when_empty():
 
     # Then the message does not end with a newline.
     assert not message.endswith("\n")
+
 
 def test_escapes_dynamic_text_fields():
     """Escape the dynamic asset name and description fields."""
@@ -172,6 +182,7 @@ def test_escapes_dynamic_text_fields():
 # Contract: True only when at least one chat was actually notified.
 # ---------------------------------------------------------------------------
 
+
 def test_text_notification_all_success_returns_true():
     """Every chat receives the text message -> notify() reports success."""
     client = _fake_client()
@@ -179,6 +190,7 @@ def test_text_notification_all_success_returns_true():
 
     assert ok is True
     assert client.send_message.await_count == len(_text_cfg().chat_ids)
+
 
 def test_text_notification_includes_tag():
     """copy.tag reaches the sent text as its last line."""
@@ -194,6 +206,7 @@ def test_text_notification_includes_tag():
     sent_text = client.send_message.await_args.args[1]
     assert sent_text.endswith("\n#bettbox")
 
+
 def test_pub_date_uses_beijing_calendar_date():
     """A release published after 16:00 UTC is dated the next day locally."""
     # Given a release published at 17:52 UTC (01:52 the next day in UTC+8):
@@ -208,6 +221,7 @@ def test_pub_date_uses_beijing_calendar_date():
     sent_text = client.send_message.await_args.args[1]
     assert "发布时间：2026-11-12" in sent_text
 
+
 def test_text_notification_disables_link_preview():
     """send_message must explicitly disable the web link preview."""
     # Given the standard text-notification path:
@@ -220,12 +234,14 @@ def test_text_notification_disables_link_preview():
     kwargs = client.send_message.await_args.kwargs
     assert kwargs.get("link_preview") is False
 
+
 def test_text_notification_all_sends_fail_returns_false():
     """All sends raise -> notify() must report failure (retry on next run)."""
     client = _fake_client(Exception("send failed"))
     ok = _notify(RELEASE_NO_ASSETS, client)
 
     assert ok is False
+
 
 def test_text_notification_floodwait_zero_sent_returns_false():
     """FloodWait on first chat -> zero chats notified -> failure, not success."""
@@ -236,6 +252,7 @@ def test_text_notification_floodwait_zero_sent_returns_false():
     ok = _notify(RELEASE_NO_ASSETS, client)
 
     assert ok is False
+
 
 def test_text_notification_partial_failure_returns_false():
     """One of two chats fails -> delivery incomplete -> failure."""
@@ -254,6 +271,7 @@ def test_text_notification_partial_failure_returns_false():
 # Contract: True only when EVERY asset uploaded AND every chat received.
 # ---------------------------------------------------------------------------
 
+
 def test_album_partial_upload_failure_returns_false_and_sends_nothing():
     """One of two uploads fails -> no incomplete album, notify() = False."""
     client, stream_patch = _album_client(_upload(["a.apk"]))
@@ -265,6 +283,7 @@ def test_album_partial_upload_failure_returns_false_and_sends_nothing():
     client.send_file.assert_not_called()
     assert ok is False
 
+
 def test_album_all_upload_success_and_send_succeeds_returns_true():
     """Every asset uploads and album sends to every chat -> notify() = True."""
     client, stream_patch = _album_client(_upload(["a.apk", "b.apk"]))
@@ -274,6 +293,7 @@ def test_album_all_upload_success_and_send_succeeds_returns_true():
     assert client.send_file.call_count == len(_text_cfg().chat_ids)
     assert ok is True
 
+
 def test_album_all_uploads_fail_returns_false():
     """Every upload fails -> existing all-failed branch returns False."""
     client, stream_patch = _album_client(_upload([]))
@@ -281,6 +301,7 @@ def test_album_all_uploads_fail_returns_false():
         ok = _notify(RELEASE_2_ASSETS, client, RELEASE_2_ASSETS["assets"])
 
     assert ok is False
+
 
 def test_album_splits_more_than_ten_assets_into_batches():
     """11 assets become a 10-item album plus a single-item message."""
@@ -309,6 +330,7 @@ def test_album_splits_more_than_ten_assets_into_batches():
     assert len(calls[0].args[1]) == 10
     # Telegram rejects single-item albums, so the tail is sent as one media.
     assert not isinstance(calls[1].args[1], list)
+
 
 def test_client_is_never_disconnected_by_the_notifier(monkeypatch):
     """The caller owns the session; an upload failure must not close it."""

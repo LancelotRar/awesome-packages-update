@@ -25,6 +25,7 @@ class _Resp:
     def __exit__(self, *exc) -> bool:
         return False
 
+
 def _http_error(code: int, headers: dict[str, str] | None = None,
                 reason: str = "error") -> urllib.error.HTTPError:
     hdrs = {"Content-Type": "application/json"}
@@ -33,6 +34,7 @@ def _http_error(code: int, headers: dict[str, str] | None = None,
         "https://api.github.com/repos/foo/bar/releases?per_page=1",
         code, reason, hdrs, io.BytesIO(b""),
     )
+
 
 def _install(monkeypatch, *effects):
     """Patch urlopen/sleep with *effects* replayed in order.
@@ -69,6 +71,7 @@ def test_get_json_retries_429_when_retry_after_present(monkeypatch):
     assert len(calls) == 2
     assert sleeps == [7]
 
+
 def test_get_json_caps_rate_limit_sleep_at_two_minutes(monkeypatch):
     _, sleeps = _install(
         monkeypatch,
@@ -77,6 +80,7 @@ def test_get_json_caps_rate_limit_sleep_at_two_minutes(monkeypatch):
     )
     assert github_api._get_json("https://api.github.com/x") == []
     assert sleeps == [120]
+
 
 def test_get_json_waits_for_rate_limit_reset_on_403(monkeypatch):
     reset = str(int(time.time()) + 300)
@@ -92,6 +96,7 @@ def test_get_json_waits_for_rate_limit_reset_on_403(monkeypatch):
     assert sleeps == [120]
     assert len(calls) == 2
 
+
 def test_get_json_429_without_header_falls_back_to_backoff(monkeypatch):
     _, sleeps = _install(
         monkeypatch,
@@ -100,6 +105,7 @@ def test_get_json_429_without_header_falls_back_to_backoff(monkeypatch):
     )
     github_api._get_json("https://api.github.com/x")
     assert sleeps == [2]  # 2**attempt fallback
+
 
 def test_get_json_raises_after_429_retries_exhausted(monkeypatch):
     calls, sleeps = _install(
@@ -121,15 +127,18 @@ def test_get_json_permission_403_fails_without_retry(monkeypatch):
     assert len(calls) == 1
     assert sleeps == []
 
+
 def test_get_json_still_retries_server_errors(monkeypatch):
     _, sleeps = _install(monkeypatch, _http_error(500), _Resp(b'{"n": 1}'))
     assert github_api._get_json("https://api.github.com/x") == {"n": 1}
     assert sleeps == [2]
 
+
 def test_get_json_retries_connection_errors(monkeypatch):
     _, sleeps = _install(monkeypatch, OSError("boom"), _Resp(b"[]"))
     assert github_api._get_json("https://api.github.com/x") == []
     assert sleeps == [2]
+
 
 def test_get_json_invalid_json_raises(monkeypatch):
     _install(monkeypatch, _Resp(b"not json"))
@@ -149,6 +158,7 @@ def test_fetch_releases_requests_one_full_page(monkeypatch):
     assert github_api.fetch_releases("foo/bar") == []
     assert urls == ["https://api.github.com/repos/foo/bar/releases?per_page=100"]
 
+
 def test_fetch_releases_returns_json_array_as_is(monkeypatch):
     payload = b'[{"tag_name": "desktop-v1"}, {"tag_name": "cli-v1"}]'
     _install(monkeypatch, _Resp(payload))
@@ -156,6 +166,7 @@ def test_fetch_releases_returns_json_array_as_is(monkeypatch):
         {"tag_name": "desktop-v1"},
         {"tag_name": "cli-v1"},
     ]
+
 
 def test_fetch_releases_rejects_non_array_payload(monkeypatch):
     _install(monkeypatch, _Resp(b'{"message": "Not Found"}'))

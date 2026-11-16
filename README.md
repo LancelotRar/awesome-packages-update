@@ -133,8 +133,10 @@ GITHUB_TOKEN=$(gh auth token) python scripts/audit_assets.py
 每行是一条事件，而不是一句散文：
 
 ```
-2026-11-13T07:30:02.517+08:00 INFO  [run_checks gh-19372648512-1] update_detected item=bettbox repo=o/bettbox previous=2026-11-10T07:00:00+08:00 marker=2026-11-12T01:52:43+08:00 assets=3
+2026-11-13T07:30:02.517+08:00 INFO  [run_checks gh-19372648512-1] update_detected item=bettbox repo=o/bettbox previous=v1.19.7@3f2a marker=v1.19.8@9c1d assets=2
 ```
+
+- `assets` 是命中资产过滤器的资产数，不是该 Release 的全部资产数。
 
 - `[<entry_point> <run_id>]` 标明这条日志由哪个入口、哪次运行产生；`run_id` 取自
   `GITHUB_RUN_ID` / `GITHUB_RUN_ATTEMPT`（本地运行为 `local-xxxxxxxx`）。并发扫描期间
@@ -159,8 +161,8 @@ projects.yaml                          监控清单
 data/state.json                        持久化标记
 scripts/run_checks.py                  主流程
 scripts/logs.py                        结构化日志（事件、运行上下文、Actions 注解）
-scripts/scan.py                        检测 + 资产匹配（runner 与 audit 共用）
-scripts/env.py                         环境变量解析（chat id、必填项）
+scripts/scan.py                        扫描结果（状态、原因、命中资产；runner 与 audit 共用）
+scripts/env.py                         环境变量解析与 Telegram 连接配置
 scripts/watchlist.py                   清单加载与校验
 scripts/detector.py                    latest / tag 检测
 scripts/state.py                       data/state.json 原子读写

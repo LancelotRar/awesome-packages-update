@@ -10,14 +10,22 @@ if TYPE_CHECKING:
 
 
 class ConfigError(RuntimeError):
-    """Missing or malformed configuration."""
+    """Missing or malformed configuration.
+
+    ``variable`` names the environment variable to blame when known, so
+    callers can keep logging a stable ``config_error`` field.
+    """
+
+    def __init__(self, message: str, variable: str = "") -> None:
+        super().__init__(message)
+        self.variable = variable
 
 
 def required(name: str) -> str:
     """Return *name*'s value, or raise when it is missing or empty."""
     value = os.environ.get(name, "")
     if not value:
-        raise ConfigError(f"Missing required env var: {name}")
+        raise ConfigError(f"Missing required env var: {name}", variable=name)
     return value
 
 
@@ -29,11 +37,13 @@ def chat_ids(raw: str, var: str) -> list[int]:
     """
     parts = [part.strip() for part in raw.split(",") if part.strip()]
     if not parts:
-        raise ConfigError(f"{var} is empty after splitting")
+        raise ConfigError(f"{var} is empty after splitting", variable=var)
     try:
         return [int(part) for part in parts]
     except ValueError as e:
-        raise ConfigError(f"{var} contains a non-numeric value: {e}") from e
+        raise ConfigError(
+            f"{var} contains a non-numeric value: {e}", variable=var
+        ) from e
 
 
 def telegram_config(targets: list[int]) -> TelegramConfig:
@@ -48,7 +58,9 @@ def telegram_config(targets: list[int]) -> TelegramConfig:
     try:
         api_id = int(raw_api_id)
     except ValueError as e:
-        raise ConfigError(f"TG_API_ID must be numeric: {e}") from e
+        raise ConfigError(
+            f"TG_API_ID must be numeric: {e}", variable="TG_API_ID"
+        ) from e
     return TelegramConfig(
         bot_token=required("TG_BOT_TOKEN"),
         chat_ids=targets,

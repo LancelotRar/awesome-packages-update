@@ -23,6 +23,15 @@ class ScanStatus(StrEnum):
     DETECTION_FAILED = "detection_failed"
     ASSETS_UNMATCHED = "assets_unmatched"
 
+    @property
+    def carries_detection(self) -> bool:
+        return self in (ScanStatus.READY, ScanStatus.ASSETS_UNMATCHED)
+
+    @property
+    def needs_reason(self) -> bool:
+        return self in (ScanStatus.DETECTION_FAILED,
+                        ScanStatus.ASSETS_UNMATCHED)
+
 
 @dataclass(frozen=True)
 class ScanResult:
@@ -40,13 +49,9 @@ class ScanResult:
     reason: str = ""
 
     def __post_init__(self) -> None:
-        carries_detection = self.status in (
-            ScanStatus.READY, ScanStatus.ASSETS_UNMATCHED,
-        )
-        if carries_detection != (self.detection is not None):
+        if self.status.carries_detection != (self.detection is not None):
             raise ValueError(f"{self.status.value} detection mismatch")
-        if self.status in (ScanStatus.DETECTION_FAILED,
-                           ScanStatus.ASSETS_UNMATCHED):
+        if self.status.needs_reason:
             if not self.reason:
                 raise ValueError(f"{self.status.value} requires a reason")
         elif self.reason:

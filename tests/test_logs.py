@@ -16,6 +16,7 @@ def _capture(monkeypatch, **kwargs):
     logs.configure("run_checks", stream=buf, **kwargs)
     return buf, logs.logger("test")
 
+
 def test_text_line_carries_entry_point_event_and_fields(monkeypatch):
     buf, log = _capture(monkeypatch, annotations=False)
 
@@ -27,6 +28,7 @@ def test_text_line_carries_entry_point_event_and_fields(monkeypatch):
     assert " update_detected " in line
     assert "item=a" in line
     assert "assets=2" in line
+
 
 def test_json_line_is_one_object(monkeypatch):
     buf, log = _capture(monkeypatch, fmt="json")
@@ -42,6 +44,7 @@ def test_json_line_is_one_object(monkeypatch):
     assert payload["item"] == "a"
     assert payload["ok"] is True
 
+
 def test_context_fields_are_scoped_to_the_block(monkeypatch):
     buf, log = _capture(monkeypatch, annotations=False)
 
@@ -53,6 +56,7 @@ def test_context_fields_are_scoped_to_the_block(monkeypatch):
     assert "item=a" in inside
     assert "item=a" not in outside
 
+
 def test_debug_is_hidden_at_info(monkeypatch):
     buf, log = _capture(monkeypatch, annotations=False)
 
@@ -61,6 +65,7 @@ def test_debug_is_hidden_at_info(monkeypatch):
 
     assert "scan_started" not in buf.getvalue()
     assert "run_started" in buf.getvalue()
+
 
 def test_warning_and_error_become_workflow_annotations(monkeypatch):
     buf, log = _capture(monkeypatch, annotations=True)
@@ -74,6 +79,7 @@ def test_warning_and_error_become_workflow_annotations(monkeypatch):
     assert lines[1].startswith("::warning title=no_assets::")
     assert lines[2].startswith("20")
 
+
 def test_json_mode_never_emits_workflow_commands(monkeypatch):
     monkeypatch.setenv("GITHUB_ACTIONS", "true")
     buf = io.StringIO()
@@ -84,6 +90,7 @@ def test_json_mode_never_emits_workflow_commands(monkeypatch):
     line = buf.getvalue().strip()
     assert not line.startswith("::")
     assert json.loads(line)["event"] == "boom"
+
 
 def test_annotations_can_be_disabled_from_the_environment(monkeypatch):
     for name in ("LOG_LEVEL", "LOG_FORMAT", "LOG_ANNOTATIONS"):
@@ -97,6 +104,7 @@ def test_annotations_can_be_disabled_from_the_environment(monkeypatch):
 
     assert not buf.getvalue().startswith("::error")
 
+
 def test_credential_like_fields_are_redacted(monkeypatch):
     buf, log = _capture(monkeypatch, annotations=False)
 
@@ -108,6 +116,7 @@ def test_credential_like_fields_are_redacted(monkeypatch):
     assert "deadbeef" not in line
     assert "bot_token=***" in line
     assert "error=401" in line
+
 
 def test_run_id_prefers_the_github_run_context(monkeypatch):
     for name in ("LOG_LEVEL", "LOG_FORMAT", "LOG_ANNOTATIONS"):
@@ -121,6 +130,7 @@ def test_run_id_prefers_the_github_run_context(monkeypatch):
 
     assert "[run_checks gh-123-2]" in buf.getvalue()
 
+
 def test_field_values_never_split_a_line(monkeypatch):
     buf, log = _capture(monkeypatch, annotations=False)
 
@@ -129,6 +139,7 @@ def test_field_values_never_split_a_line(monkeypatch):
     lines = buf.getvalue().splitlines()
     assert len(lines) == 1
     assert 'error="line one line two"' in lines[0]
+
 
 def test_annotation_escapes_workflow_command_syntax(monkeypatch):
     buf, log = _capture(monkeypatch, annotations=True)

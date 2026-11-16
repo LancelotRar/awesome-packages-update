@@ -10,6 +10,7 @@ def test_required_returns_the_value(monkeypatch):
 
     assert required("SOME_VAR") == "value"
 
+
 def test_required_rejects_missing_or_empty(monkeypatch):
     monkeypatch.delenv("SOME_VAR", raising=False)
     with pytest.raises(RuntimeError, match="Missing required env var: SOME_VAR"):
@@ -19,12 +20,15 @@ def test_required_rejects_missing_or_empty(monkeypatch):
     with pytest.raises(RuntimeError, match="SOME_VAR"):
         required("SOME_VAR")
 
+
 def test_chat_ids_parses_and_strips():
     assert chat_ids("111, 222 ,333", "TG_CHAT_ID") == [111, 222, 333]
+
 
 def test_chat_ids_rejects_empty_input():
     with pytest.raises(RuntimeError, match="empty after splitting"):
         chat_ids(" , ", "TG_CHAT_ID")
+
 
 def test_chat_ids_rejects_non_numeric():
     with pytest.raises(RuntimeError, match="non-numeric"):
@@ -47,8 +51,9 @@ def test_telegram_config_rejects_missing_credentials(monkeypatch):
     monkeypatch.setenv("TG_API_ID", "42")
     monkeypatch.setenv("TG_API_HASH", "HASH")
 
-    with pytest.raises(ConfigError, match="TG_BOT_TOKEN"):
+    with pytest.raises(ConfigError, match="TG_BOT_TOKEN") as excinfo:
         telegram_config([111])
+    assert excinfo.value.variable == "TG_BOT_TOKEN"
 
 def test_telegram_config_rejects_non_numeric_api_id(monkeypatch):
     monkeypatch.setenv("TG_BOT_TOKEN", "TOK")
