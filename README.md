@@ -45,8 +45,8 @@ GitHub API 不提供资产内容哈希，所以同名同大小但被重新上传
     repo: bitwarden/clients
     strategy: latest
     release_tag_include: ["desktop-v*"]
-    asset_include: "bitwarden+portable+.exe, bitwarden+installer+.exe"
-    asset_exclude: "commercial"
+    asset_include: "oss+portable+.exe, oss+installer+.exe"
+    asset_exclude: ""
     notify:
       title: "bitwarden-win 新版本发布！"
       description: "开源密码管理器的 Windows 桌面客户端"

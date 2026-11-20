@@ -122,8 +122,8 @@ projects:
     repo: bitwarden/clients
     strategy: latest
     release_tag_include: ["desktop-v*"]
-    asset_include: "bitwarden+portable+.exe, bitwarden+installer+.exe"
-    asset_exclude: "commercial"
+    asset_include: "oss+portable+.exe, oss+installer+.exe"
+    asset_exclude: ""
     notify:
       title: "bitwarden-win 新版本发布！"
       description: "开源密码管理器的 Windows 桌面客户端"
@@ -137,7 +137,7 @@ projects:
     strategy: latest
     release_tag_include: ["v*-bwpm"]
     asset_include: "com.x8bit.bitwarden+.apk"
-    asset_exclude: "-sha256"
+    asset_exclude: "fdroid, -sha256"
     notify:
       title: "bitwarden-android 新版本发布！"
       description: "开源密码管理器的 Android 客户端"
