@@ -1,253 +1,253 @@
 {
   "3fui": {
     "alerted": false,
-    "failures": 0,
-    "last_checked": "2026-11-23T11:57:26+08:00",
-    "last_error": "",
+    "failures": 1,
+    "last_checked": "2026-11-24T15:00:28+08:00",
+    "last_error": "Request was unsuccessful 6 time(s)",
     "marker": "6.5.2@f1c8ead470fe21bbeef979e16621d5d2e13743e72be13379ac01041d2ac5966b"
   },
   "64gram-desktop": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-23T11:57:26+08:00",
+    "last_checked": "2026-11-24T15:00:28+08:00",
     "last_error": "",
     "marker": "v1.2.13@beb426c1f24851b26c0cc5fba09f226fa469d381ba891ae4ae4f6a37e88c2639"
   },
   "ainanplayer": {
     "alerted": false,
-    "failures": 0,
-    "last_checked": "2026-11-23T11:54:16+08:00",
-    "last_error": "",
+    "failures": 1,
+    "last_checked": "2026-11-24T15:00:12+08:00",
+    "last_error": "Request was unsuccessful 6 time(s)",
     "marker": "v4.7.0@36e7f9b442d972827b866a22b8a58463f324f5e555d0ecf519213a3a30aad42b"
   },
   "ant-video": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-23T11:54:16+08:00",
+    "last_checked": "2026-11-24T15:00:28+08:00",
     "last_error": "",
     "marker": "2.0.6@609aff9de39b9dfb81e92933cc9263f3297e7192fbd115cf764cbd5b0dce5727"
   },
   "bbll": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-23T11:56:21+08:00",
+    "last_checked": "2026-11-24T15:00:28+08:00",
     "last_error": "",
     "marker": "1.5.5@d0a022365bce49a4b2ac9dc92bab0a8e894b27e96bdd364d32c14a75666e23f6"
   },
   "bettbox": {
     "alerted": false,
-    "failures": 0,
-    "last_checked": "2026-11-23T11:54:16+08:00",
-    "last_error": "",
+    "failures": 1,
+    "last_checked": "2026-11-24T15:00:28+08:00",
+    "last_error": "Request was unsuccessful 6 time(s)",
     "marker": "v1.19.9@70c8f50c6fafc6ef959765c261a29565aaae59954825fc4e88ca6ac77e3cb354"
   },
   "bitwarden-android": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-23T11:56:21+08:00",
+    "last_checked": "2026-11-24T15:00:28+08:00",
     "last_error": "",
     "marker": "v2026.11.1-bwpm@009d482d188237427f6da44c8ae24f1a13eed0e67a94072b2ee85a6774f55645"
   },
   "bitwarden-win": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-23T11:56:21+08:00",
+    "last_checked": "2026-11-24T15:00:28+08:00",
     "last_error": "",
     "marker": "desktop-v2026.11.0@133ef6a6f9510bc18eb680e59b0d13511e21087a838fffb8d38e9802704a4aba"
   },
   "clash-verge-rev": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-23T11:57:26+08:00",
+    "last_checked": "2026-11-24T15:00:28+08:00",
     "last_error": "",
     "marker": "v2.5.10@8673f0893fd38b9a9bfe267265dcc501165f76f28fdcbe59dea1eb8255921a18"
   },
   "cmfa": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-23T11:54:16+08:00",
+    "last_checked": "2026-11-24T15:00:28+08:00",
     "last_error": "",
     "marker": "v2.11.37@7c1e37d281d2e9c04bd1019e599e1b30bc5b29892fda56d546fb787064fb12fa"
   },
   "defender-remover": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-23T11:57:26+08:00",
+    "last_checked": "2026-11-24T15:00:28+08:00",
     "last_error": "",
     "marker": "release13-rev1@eb39db7151b8cd1b1cfb5b8a30f6e66972c2cf74cc4dec548fb84db0d522643a"
   },
   "flclash": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-23T11:54:16+08:00",
+    "last_checked": "2026-11-24T15:00:28+08:00",
     "last_error": "",
     "marker": "v0.9.4@d18045972884c87a427010ab9eb7f1b25c16d9ccc79a96ac78f43ca9965a29f3"
   },
   "fongmi-module": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-23T11:52:17+08:00",
+    "last_checked": "2026-11-24T15:00:12+08:00",
     "last_error": "",
     "marker": "53488276cd2855835dea408f0e60a9f48be989bb328a482cb146753d68223673"
   },
   "fongmitv": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-23T11:54:16+08:00",
+    "last_checked": "2026-11-24T15:00:28+08:00",
     "last_error": "",
     "marker": "5.9.0@6cc6bec4a616502c058316bc8048a3cfa768a013d8581dee798fb860abcec42a"
   },
   "gkd": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-23T11:56:21+08:00",
+    "last_checked": "2026-11-24T15:00:28+08:00",
     "last_error": "",
     "marker": "v1.13.2@66243712bd69fed352e1fd11095bea73cc8ee13287aaf27c2736f916ec5a2746"
   },
   "handbrake": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-23T11:57:26+08:00",
+    "last_checked": "2026-11-24T15:00:28+08:00",
     "last_error": "",
     "marker": "1.11.2@665d49c0489356f6ff2011c6e8b5ce882ff206d922c76faec6c5930973e9e27d"
   },
   "heu-kms-activator": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-23T11:57:26+08:00",
+    "last_checked": "2026-11-24T15:00:28+08:00",
     "last_error": "",
     "marker": "64.0.0@01affeea01f12bbc6455954b84d3df6f907e741405be84332775b38d0d5b9362"
   },
   "jellyfin-androidtv": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-23T11:57:26+08:00",
+    "last_checked": "2026-11-24T15:00:28+08:00",
     "last_error": "",
     "marker": "v0.20.0@49091eec2fea144847a01a9b84d683aecf47e679333225642a475d6ee4049590"
   },
   "lenovo-legion-toolkit": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-23T11:57:26+08:00",
+    "last_checked": "2026-11-24T15:00:28+08:00",
     "last_error": "",
     "marker": "v2.38.0.0@dca110d6e55e4069b68aefc143a1dec2fa543829bd6c5b4c065f15df3695e0e0"
   },
   "localsend": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-23T11:57:26+08:00",
+    "last_checked": "2026-11-24T15:00:28+08:00",
     "last_error": "",
     "marker": "v1.18.2@28c5368a9ab28403987c56989cd86500f242de49c93d01cbc37ee8da2606f9f8"
   },
   "mister-download-manager": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-23T11:57:26+08:00",
+    "last_checked": "2026-11-24T15:00:28+08:00",
     "last_error": "",
     "marker": "v0.5.2@75006f7f70b2309a98177293e13d3d7036718e210606b61a2876c4b5986ec3a4"
   },
   "moonlight": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-23T11:56:21+08:00",
+    "last_checked": "2026-11-24T15:00:28+08:00",
     "last_error": "",
     "marker": "v12.15.33@470aabda0dba8fbe76a1f3ea0aaf0ec0f6ddce7b41518604a65c2c677d5be51b"
   },
   "nagram-desktop": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-23T11:57:26+08:00",
+    "last_checked": "2026-11-24T15:00:28+08:00",
     "last_error": "",
     "marker": "v7.4.4.1@9b6a947f35c6dd699e21cc1615f9648dd61cabb550caf3f2505c8d953966341b"
   },
   "notepad3": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-23T11:57:26+08:00",
+    "last_checked": "2026-11-24T15:00:28+08:00",
     "last_error": "",
     "marker": "RELEASE_7.26.602.1@0e7271ca4433e71e125133badf7a8ffa85d5a86d455eb7f2d5d3c9462e56f2e7"
   },
   "powershell": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-23T11:57:26+08:00",
+    "last_checked": "2026-11-24T15:00:28+08:00",
     "last_error": "",
     "marker": "v7.7.0@a1d9ad144a517fba7b07a1d4a5e877a1359ac8809ef2b7fa65ac009ee87932b4"
   },
   "powertoys": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-23T11:57:26+08:00",
+    "last_checked": "2026-11-24T15:00:28+08:00",
     "last_error": "",
     "marker": "v0.102.3101@70ee8ee91f9cb42fce44aacbc0ffd8ec2dc17cbf24cd20684648714db193f41d"
   },
   "stranslate": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-23T11:57:26+08:00",
+    "last_checked": "2026-11-24T15:00:28+08:00",
     "last_error": "",
     "marker": "v2.0.12@40330c0a20d81a0a22d471a40f750ffb62e513e45fb6f90ef0db9bf2fd770713"
   },
   "sunshine": {
     "alerted": false,
-    "failures": 0,
-    "last_checked": "2026-11-23T11:57:26+08:00",
-    "last_error": "",
+    "failures": 1,
+    "last_checked": "2026-11-24T15:00:28+08:00",
+    "last_error": "Request was unsuccessful 6 time(s)",
     "marker": "v2026.1031.121458.杂鱼@8c8bc2408f8d76da17e545175d990bf350d4c2e7330161beb5406b8aa1e915a0"
   },
   "syncthing": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-23T11:57:26+08:00",
+    "last_checked": "2026-11-24T15:00:28+08:00",
     "last_error": "",
     "marker": "v2.1.7@0c98a4a067122e155f9ea6a60f285c952ab4fef32242cd119f73dd8ec8db12ac"
   },
   "tailscale-android": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-23T11:57:26+08:00",
+    "last_checked": "2026-11-24T15:00:28+08:00",
     "last_error": "",
     "marker": "1.104.7-tfb3b9b296-g226f029a3@0e805d0b8a24bb6bae6d9ebcec2ffd447a79c3ddbd0cce9a77cd3fafd4b38791"
   },
   "tubatools": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-23T11:57:26+08:00",
+    "last_checked": "2026-11-24T15:00:28+08:00",
     "last_error": "",
     "marker": "v1.9.1@d0fe89f7a24de3e8bdcee317fdabb0b8e85e0c5e3c04019b1f6195a9d0107994"
   },
   "v2rayn": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-23T11:57:26+08:00",
+    "last_checked": "2026-11-24T15:00:28+08:00",
     "last_error": "",
     "marker": "7.25.6@6666f86a18045abbd660f2c3a4478f7a517239b545a33bfd3226273658d203ce"
   },
   "webhtv": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-23T11:52:17+08:00",
+    "last_checked": "2026-11-24T15:00:12+08:00",
     "last_error": "",
     "marker": "v5.6.0-202609241253@a46c83fd00df237dace0ce6ef2e8a24e0027435aa56d942142e3737bbf4ab155"
   },
   "windows-terminal": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-23T11:57:26+08:00",
+    "last_checked": "2026-11-24T15:00:28+08:00",
     "last_error": "",
     "marker": "v1.25.3131.0@181ead52bcb9f324433ecbe63c08b7873cded2848d4f0f829add6bf9d202a0f9"
   },
   "winhance": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-23T11:57:26+08:00",
+    "last_checked": "2026-11-24T15:00:28+08:00",
     "last_error": "",
     "marker": "v26.06.12@47367b47cf880ed5c6791bec17032580a894adadbbef76814daee679f71e45fb"
   },
   "winutil": {
     "alerted": false,
     "failures": 0,
-    "last_checked": "2026-11-23T11:57:26+08:00",
+    "last_checked": "2026-11-24T15:00:28+08:00",
     "last_error": "",
     "marker": "26.11.13@87fb2be4ec82dacb062a0656f41918549bcd32731f67cdb685783ea271464ad4"
   }
