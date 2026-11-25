@@ -3,6 +3,7 @@
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 from telethon import errors as tg_errors
 
 import notifier
@@ -346,3 +347,95 @@ def test_client_is_never_disconnected_by_the_notifier(monkeypatch):
 
     assert ok is False
     client.disconnect.assert_not_awaited()
+
+# ---------------------------------------------------------------------------
+# open_client() — login retry policy
+# Contract: transient incidents are retried with exponential backoff; bad
+# credentials fail on the first attempt.
+# ---------------------------------------------------------------------------
+
+
+def _install_login(monkeypatch, failures):
+    """Patch the Telegram client and sleep; return (clients, sleeps)."""
+    clients = []
+    sleeps = []
+
+    def factory(*_args, **kwargs):
+        client = MagicMock()
+        client.kwargs = kwargs
+
+        async def start(bot_token=None):
+            if failures:
+                raise failures.pop(0)
+
+        client.start = start
+        client.disconnect = AsyncMock()
+        clients.append(client)
+        return client
+
+    async def fake_sleep(seconds):
+        sleeps.append(seconds)
+
+    monkeypatch.setattr(notifier, "TelegramClient", factory)
+    monkeypatch.setattr(notifier.asyncio, "sleep", fake_sleep)
+    return clients, sleeps
+
+
+def test_login_retries_transient_failures_with_exponential_backoff(monkeypatch):
+    """A server incident or a dropped connection is retried after 15s, 30s."""
+    # Given a Telegram that fails twice before accepting the login:
+    failures = [tg_errors.RpcCallFailError(request=None),
+                OSError("connection reset")]
+    clients, sleeps = _install_login(monkeypatch, failures)
+
+    # When the client is opened:
+    client = asyncio.run(notifier.open_client(_text_cfg()))
+
+    # Then it succeeds on the third attempt after doubling the wait, and
+    # only the failed attempts were closed.
+    assert client is clients[-1]
+    assert len(clients) == 3
+    assert sleeps == [15, 30]
+    assert [c.disconnect.await_count for c in clients] == [1, 1, 0]
+
+
+def test_login_gives_up_after_max_attempts(monkeypatch):
+    """Exhausting the attempts raises a RuntimeError naming the cause."""
+    # Given a Telegram that never recovers:
+    failures = [tg_errors.TimedOutError(request=None, message="Timeout")
+                for _ in range(3)]
+    clients, sleeps = _install_login(monkeypatch, failures)
+
+    # When the client is opened:
+    with pytest.raises(RuntimeError, match="after 3 attempts") as err:
+        asyncio.run(notifier.open_client(_text_cfg()))
+
+    # Then every attempt was made and the last error is preserved.
+    assert len(clients) == 3
+    assert sleeps == [15, 30]
+    assert "Timeout" in str(err.value)
+
+
+def test_login_fails_fast_on_bad_credentials(monkeypatch):
+    """An auth error is not retried: waiting cannot fix a wrong token."""
+    # Given a Telegram that rejects the bot credential:
+    failures = [tg_errors.AuthKeyUnregisteredError(request=None)]
+    clients, sleeps = _install_login(monkeypatch, failures)
+
+    # When the client is opened:
+    with pytest.raises(RuntimeError, match="check TG_API_ID") as err:
+        asyncio.run(notifier.open_client(_text_cfg()))
+
+    # Then there was exactly one attempt and no backoff sleep.
+    assert len(clients) == 1
+    assert sleeps == []
+    assert "not registered" in str(err.value)
+
+
+def test_login_asks_telethon_for_the_last_rpc_error(monkeypatch):
+    """Without raise_last_call_error Telethon hides the cause in a ValueError."""
+    clients, _sleeps = _install_login(monkeypatch, [])
+
+    asyncio.run(notifier.open_client(_text_cfg()))
+
+    assert clients[0].kwargs["raise_last_call_error"] is True

@@ -21,6 +21,18 @@ from watchlist import NotifyCopy
 _ALBUM_MAX = 10  # Telegram albums accept 2-10 items
 _UPLOAD_TIMEOUT = 3600  # seconds for the whole asset fetch/upload phase
 
+_LOGIN_ATTEMPTS = 3  # total login attempts, the first one included
+_LOGIN_BACKOFF_INITIAL = 15  # seconds before the first retry; doubles each time
+
+# Failures worth retrying: Telegram-side incidents (``ServerError`` covers
+# ``RpcCallFailError``/``RpcMcgetFailError``) and transport errors
+# (``OSError`` covers ``ConnectionError`` and ``TimeoutError``).
+_TRANSIENT_LOGIN_ERRORS = (
+    tg_errors.ServerError,
+    tg_errors.TimedOutError,
+    OSError,
+)
+
 log = logger("notifier")
 
 
@@ -63,26 +75,73 @@ def _build_message(asset_name: str, pub_date: str, html_url: str,
     return "\n".join(lines)
 
 
+async def _disconnect_quietly(client: TelegramClient) -> None:
+    """Close a client whose login failed, without hiding that failure."""
+    try:
+        await client.disconnect()  # type: ignore[misc]
+    except Exception as e:  # cleanup must never replace the login error
+        log.debug("telegram_client_close_failed", error=str(e))
+
+
 async def open_client(cfg: TelegramConfig) -> TelegramClient:
-    """Start a bot Telethon client, failing fast on auth errors.
+    """Start a bot Telethon client, retrying transient login failures.
+
+    Telethon retries a request internally only a handful of times at a
+    fixed 2s interval, so a ~15s Telegram outage still fails the whole
+    run. Login is therefore retried ``_LOGIN_ATTEMPTS`` times with
+    exponential backoff, starting at ``_LOGIN_BACKOFF_INITIAL`` seconds and
+    doubling per retry.
+
+    Only ``_TRANSIENT_LOGIN_ERRORS`` are retried; any other ``RPCError``
+    (bad credential, invalid api id/hash) fails on the first attempt,
+    because retrying it only delays the inevitable.
+
+    ``raise_last_call_error`` makes Telethon re-raise the last RPC error
+    instead of a bare ``ValueError('Request was unsuccessful ...')``, so
+    the cause survives into the log and the retry decision above can tell
+    a server incident from a credential problem.
 
     NOTE: Do NOT use ``async with TelegramClient(…)`` — its
     ``__aenter__`` calls ``self.start()`` with *no* arguments, which
     would fall back to interactive phone/token input (impossible in CI).
     """
     log.debug("telegram_client_starting")
-    client = TelegramClient(
-        StringSession(), cfg.api_id, cfg.api_hash,
-        connection_retries=3,
-    )
-    try:
-        await client.start(bot_token=cfg.bot_token)  # type: ignore[misc]
-    except tg_errors.RPCError as e:
-        raise RuntimeError(
-            f"Telegram auth failed — check TG_API_ID / TG_API_HASH / TG_BOT_TOKEN: {e}"
-        ) from e
-    log.debug("telegram_client_started")
-    return client
+    delay = _LOGIN_BACKOFF_INITIAL
+    last_error: Exception | None = None
+    for attempt in range(1, _LOGIN_ATTEMPTS + 1):
+        client: TelegramClient | None = None
+        try:
+            client = TelegramClient(
+                StringSession(), cfg.api_id, cfg.api_hash,
+                connection_retries=3,
+                raise_last_call_error=True,
+            )
+            await client.start(bot_token=cfg.bot_token)  # type: ignore[misc]
+        except _TRANSIENT_LOGIN_ERRORS as e:
+            last_error = e
+            if client is not None:
+                await _disconnect_quietly(client)
+        except tg_errors.RPCError as e:
+            if client is not None:
+                await _disconnect_quietly(client)
+            raise RuntimeError(
+                f"Telegram auth failed — check TG_API_ID / TG_API_HASH / TG_BOT_TOKEN: {e}"
+            ) from e
+        else:
+            log.debug("telegram_client_started")
+            return client
+
+        if attempt < _LOGIN_ATTEMPTS:
+            log.warning("telegram_login_retry", attempt=attempt,
+                        max_attempts=_LOGIN_ATTEMPTS,
+                        delay_seconds=delay, error=str(last_error))
+            await asyncio.sleep(delay)
+            delay *= 2
+
+    assert last_error is not None  # the loop runs at least once
+    raise RuntimeError(
+        f"Telegram login failed after {_LOGIN_ATTEMPTS} attempts: {last_error}"
+    ) from last_error
 
 
 @asynccontextmanager
