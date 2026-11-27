@@ -93,7 +93,7 @@ projects:
       tag: "#cmfa"
 
   - id: flclash
-    repo: chen08209/FlClash
+    repo: Vialibrex/FlClash
     strategy: latest
     asset_include: "android-arm64+.apk, windows+amd64+.exe, macos+arm64+.dmg"
     asset_exclude: "dev"
@@ -102,7 +102,7 @@ projects:
       description: "基于 Mihomo 的开源多平台代理客户端。"
       group_url: "https://t.me/+G-veVtwBOl4wODc1"
       channel_url: "https://t.me/FlClash"
-      project_url: "https://github.com/chen08209/FlClash"
+      project_url: "https://github.com/Vialibrex/FlClash"
       tag: "#flclash"
 
   - id: fongmitv
