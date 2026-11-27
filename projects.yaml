@@ -95,8 +95,8 @@ projects:
   - id: flclash
     repo: chen08209/FlClash
     strategy: latest
-    asset_include: "arm64-v8a+.apk, windows+amd64+.zip, macos+arm64+.dmg"
-    asset_exclude: ""
+    asset_include: "android-arm64+.apk, windows+amd64+.zip, macos+arm64+.dmg"
+    asset_exclude: "dev"
     notify:
       title: "Flclash 新版本发布！"
       description: "基于 Mihomo 的开源多平台代理客户端。"
