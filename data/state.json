@@ -81,7 +81,7 @@
     "failures": 0,
     "last_checked": "2026-11-27T13:16:05+08:00",
     "last_error": "",
-    "marker": "v0.9.5@8bcf73664f5ad0a6d2dc901263038e5cdcbd1b02313b2661f824b7e6118acee0"
+    "marker": "v0.9.5@ded5f2c1788d82a358616365ef97f51d19f3f19ef8de767428ff75a72bcf19f6"
   },
   "fongmi-module": {
     "alerted": false,
