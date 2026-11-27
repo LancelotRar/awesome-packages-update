@@ -95,7 +95,7 @@ projects:
   - id: flclash
     repo: chen08209/FlClash
     strategy: latest
-    asset_include: "android-arm64+.apk, windows+amd64+.zip, macos+arm64+.dmg"
+    asset_include: "android-arm64+.apk, windows+amd64+.exe, macos+arm64+.dmg"
     asset_exclude: "dev"
     notify:
       title: "Flclash 新版本发布！"
